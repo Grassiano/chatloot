@@ -91,6 +91,14 @@ export const he = {
   "stats.night_owl": "ינשוף לילה",
   "stats.emoji_king": "מלך האימוג׳י",
 
+  // AI Analysis
+  "ai.analyzing": "הבינה המלאכותית קוראת את הצ׳אט...",
+  "ai.analyzing.subtitle": "מחפשת את ההודעות הכי שוות למשחק",
+  "ai.done": "מצאתי את הרגעים הכי טובים!",
+  "ai.failed": "לא הצלחתי לנתח. נשתמש בבחירה רנדומלית",
+  "ai.skip": "דלגו ושחקו עם בחירה רנדומלית",
+  "ai.enhanced": "שאלות מבוססות AI",
+
   // Common
   "common.loading": "טוען...",
   "common.error": "שגיאה",

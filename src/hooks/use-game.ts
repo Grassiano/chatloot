@@ -16,8 +16,8 @@ import { calculateScore } from "@/lib/game/scoring";
 
 interface UseGameReturn {
   state: GameState;
-  /** Initialize the game with parsed chat data */
-  initGame: (chat: ParsedChat, settings?: Partial<GameSettings>) => void;
+  /** Initialize the game with parsed chat data. Optionally pass AI-generated questions. */
+  initGame: (chat: ParsedChat, settings?: Partial<GameSettings>, aiQuestions?: WhoSaidItQuestion[]) => void;
   /** Add a player to the game */
   addPlayer: (name: string) => Player;
   /** Remove a player */
@@ -58,17 +58,17 @@ export function useGame(): UseGameReturn {
   const chatRef = useRef<ParsedChat | null>(null);
 
   const initGame = useCallback(
-    (chat: ParsedChat, settings?: Partial<GameSettings>) => {
+    (chat: ParsedChat, settings?: Partial<GameSettings>, aiQuestions?: WhoSaidItQuestion[]) => {
       const merged = { ...DEFAULT_SETTINGS, ...settings };
 
       // Store chat so restartGame can re-use it
       chatRef.current = chat;
 
-      // Generate questions
-      const questions = generateWhoSaidItQuestions(
-        chat,
-        merged.totalRounds
-      );
+      // Use AI questions if provided, otherwise fall back to random
+      const questions =
+        aiQuestions && aiQuestions.length > 0
+          ? aiQuestions
+          : generateWhoSaidItQuestions(chat, merged.totalRounds);
       questionsRef.current = questions;
 
       // Adjust total rounds to available questions
