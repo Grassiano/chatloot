@@ -202,7 +202,7 @@ export default function LandingPage() {
           >
             <div className="mx-auto flex max-w-2xl items-center gap-2">
               <Link
-                href="/upload"
+                href="/play"
                 className="flex-1 rounded-full bg-white px-5 py-3 text-[15px] font-medium text-loot-ink shadow-sm transition-all hover:shadow-md active:scale-[0.99]"
               >
                 <span className="text-loot-ink-secondary">
@@ -213,7 +213,7 @@ export default function LandingPage() {
                 </span>
               </Link>
               <Link
-                href="/upload"
+                href="/play"
                 className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#00A884] text-white shadow-sm transition-transform hover:scale-105 active:scale-95"
                 aria-label="התחל"
               >
