@@ -12,7 +12,6 @@ export function UploadStep({ onUpload }: UploadStepProps) {
   const [error, setError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const folderRef = useRef<HTMLInputElement>(null);
   const dragCountRef = useRef(0);
 
   async function handleFile(input: File | FileList) {
@@ -26,8 +25,8 @@ export function UploadStep({ onUpload }: UploadStepProps) {
         err instanceof Error ? err.message : "";
       const errorMap: Record<string, string> = {
         unsupported_file_type: "סוג קובץ לא נתמך — העלו קובץ ZIP או TXT",
-        no_chat_file: "לא נמצא קובץ צ׳אט בתוך ה-ZIP",
-        too_many_files: "יותר מדי קבצים ב-ZIP",
+        no_chat_file: "לא נמצא קובץ צ׳אט בתוך ה-ZIP או התיקייה",
+        too_many_files: "יותר מדי קבצים",
         zip_too_large: "הקובץ גדול מדי",
         file_too_large: "הקובץ גדול מדי",
         no_messages_parsed:
@@ -66,38 +65,22 @@ export function UploadStep({ onUpload }: UploadStepProps) {
       dragCountRef.current = 0;
       setIsDragging(false);
 
-      // Try directory entry API first (handles folder drops)
-      const items = e.dataTransfer.items;
-      if (items?.length > 0) {
-        const entry = items[0].webkitGetAsEntry?.();
-        if (entry?.isDirectory) {
-          try {
-            const fileList = await readDirectoryAsFileList(
-              entry as FileSystemDirectoryEntry
-            );
-            if (fileList.length > 0) {
-              handleFile(fileList);
-              return;
-            }
-          } catch {
-            // Directory API failed — fall through to file check
-          }
-        }
-      }
+      // Collect all files — handles folders, ZIPs, loose files, anything
+      const allFiles = await collectDroppedFiles(e.dataTransfer);
 
-      // Fallback: regular file(s) drop
-      const { files } = e.dataTransfer;
-      if (files.length > 0) {
-        if (files.length === 1) {
-          handleFile(files[0]);
-        } else {
-          handleFile(files);
-        }
+      if (allFiles.length === 0) {
+        setError("לא הצלחתי לקרוא את מה שגררתם — נסו שוב או לחצו לבחירה");
         return;
       }
 
-      // Nothing was droppable — show error
-      setError("לא הצלחתי לקרוא את מה שגררתם — נסו לבחור קובץ ZIP או תיקייה דרך הכפתור");
+      if (allFiles.length === 1) {
+        handleFile(allFiles[0]);
+      } else {
+        // Multiple files — build a FileList
+        const dt = new DataTransfer();
+        for (const f of allFiles) dt.items.add(f);
+        handleFile(dt.files);
+      }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -148,7 +131,7 @@ export function UploadStep({ onUpload }: UploadStepProps) {
               שחררו כאן
             </p>
             <p className="mt-1 text-[14px] text-white/70">
-              ZIP, TXT, או תיקייה
+              תיקייה, ZIP, קובץ טקסט, הכל עובד
             </p>
           </motion.div>
         )}
@@ -178,29 +161,23 @@ export function UploadStep({ onUpload }: UploadStepProps) {
           </div>
         ) : (
           <>
-            {/* Hidden file inputs */}
+            {/* Single hidden input that accepts files or folders */}
             <input
               ref={fileRef}
               type="file"
-              accept=".zip,.txt"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleFile(f);
-              }}
-              className="hidden"
-            />
-            <input
-              ref={folderRef}
-              type="file"
-              {...{ webkitdirectory: "" } as React.InputHTMLAttributes<HTMLInputElement>}
+              multiple
               onChange={(e) => {
                 const files = e.target.files;
-                if (files && files.length > 0) handleFile(files);
+                if (!files || files.length === 0) return;
+                if (files.length === 1) {
+                  handleFile(files[0]);
+                } else {
+                  handleFile(files);
+                }
               }}
               className="hidden"
             />
 
-            {/* ZIP/TXT file button */}
             <div className="flex justify-start">
               <div
                 onClick={() => fileRef.current?.click()}
@@ -216,39 +193,15 @@ export function UploadStep({ onUpload }: UploadStepProps) {
                   </div>
                   <div>
                     <p className="text-[14px] font-medium text-[#111B21]">
-                      העלו קובץ ZIP או TXT
+                      העלו את הייצוא מוואטסאפ
                     </p>
                     <p className="text-[12px] text-[#667781]">
-                      גררו לכל מקום במסך או לחצו לבחירה
+                      גררו לכאן תיקייה, ZIP, או קובץ טקסט
                     </p>
                   </div>
                 </div>
 
                 <div className="absolute inset-0 rounded-lg border-2 border-transparent transition-colors group-hover:border-[#00A884]/30" />
-              </div>
-            </div>
-
-            {/* Folder picker button */}
-            <div className="mt-3 flex justify-start">
-              <div
-                onClick={() => folderRef.current?.click()}
-                className="group relative max-w-[85%] cursor-pointer rounded-lg rounded-tr-none bg-white p-3 shadow-sm transition-shadow hover:shadow-md sm:max-w-[70%]"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F0F2F5] text-[#54656F]">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                      <path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-[13px] font-medium text-[#111B21]">
-                      או בחרו תיקייה
-                    </p>
-                    <p className="text-[11px] text-[#667781]">
-                      תיקיית הייצוא מוואטסאפ
-                    </p>
-                  </div>
-                </div>
               </div>
             </div>
           </>
@@ -272,16 +225,49 @@ export function UploadStep({ onUpload }: UploadStepProps) {
   );
 }
 
-/** Read all files from a dropped directory using the FileSystem API */
-async function readDirectoryAsFileList(
-  dirEntry: FileSystemDirectoryEntry
-): Promise<FileList> {
-  const files = await readAllEntries(dirEntry);
-  const dt = new DataTransfer();
-  for (const file of files) {
-    dt.items.add(file);
+/**
+ * Collect all files from a drop event — handles:
+ * - Single file (ZIP, TXT, media)
+ * - Multiple files
+ * - Folder drops (via webkitGetAsEntry directory traversal)
+ */
+async function collectDroppedFiles(
+  dataTransfer: DataTransfer
+): Promise<File[]> {
+  const allFiles: File[] = [];
+
+  // First, try the directory entry API for each item
+  if (dataTransfer.items?.length > 0) {
+    const entries: FileSystemEntry[] = [];
+    for (let i = 0; i < dataTransfer.items.length; i++) {
+      const entry = dataTransfer.items[i].webkitGetAsEntry?.();
+      if (entry) entries.push(entry);
+    }
+
+    if (entries.length > 0) {
+      for (const entry of entries) {
+        if (entry.isDirectory) {
+          const files = await readAllEntries(
+            entry as FileSystemDirectoryEntry
+          );
+          allFiles.push(...files);
+        } else if (entry.isFile) {
+          const file = await new Promise<File>((resolve, reject) =>
+            (entry as FileSystemFileEntry).file(resolve, reject)
+          );
+          allFiles.push(file);
+        }
+      }
+      if (allFiles.length > 0) return allFiles;
+    }
   }
-  return dt.files;
+
+  // Fallback: use dataTransfer.files
+  for (let i = 0; i < dataTransfer.files.length; i++) {
+    allFiles.push(dataTransfer.files[i]);
+  }
+
+  return allFiles;
 }
 
 async function readAllEntries(
