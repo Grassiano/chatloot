@@ -142,7 +142,7 @@ export function FinalResults({ game }: FinalResultsProps) {
             משחק חדש
           </button>
           <button
-            onClick={game.reset}
+            onClick={game.restartGame}
             className="flex-1 rounded-xl bg-[#E2A829] py-4 text-[15px] font-bold text-[#0D1117] transition-transform hover:scale-[1.02] active:scale-[0.98]"
           >
             שחק שוב 🔄

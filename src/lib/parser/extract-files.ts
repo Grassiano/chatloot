@@ -1,6 +1,10 @@
 import JSZip from "jszip";
 import type { MediaFile } from "./types";
 
+const MAX_EXTRACTED_BYTES = 500 * 1024 * 1024; // 500 MB
+const MAX_FILE_COUNT = 2000;
+const MAX_TXT_BYTES = 100 * 1024 * 1024; // 100 MB
+
 /** Result of extracting an upload — the chat text + any media files */
 export interface ExtractedUpload {
   chatText: string;
@@ -20,6 +24,7 @@ export async function extractUpload(
       return extractZip(files);
     }
     if (files.name.endsWith(".txt")) {
+      if (files.size > MAX_TXT_BYTES) throw new Error("file_too_large");
       return { chatText: await files.text(), media: new Map() };
     }
     throw new Error("unsupported_file_type");
@@ -37,6 +42,11 @@ async function extractZip(file: File): Promise<ExtractedUpload> {
 
   // Find the chat .txt file — could be _chat.txt, chat.txt, or any .txt
   const entries = Object.entries(zip.files);
+
+  if (entries.length > MAX_FILE_COUNT) {
+    throw new Error("too_many_files");
+  }
+
   const txtEntry = entries.find(([name]) => {
     const basename = name.split("/").pop()?.toLowerCase() ?? "";
     return (
@@ -53,6 +63,8 @@ async function extractZip(file: File): Promise<ExtractedUpload> {
   chatText = await txtEntry[1].async("text");
 
   // Extract all media files
+  let accumulatedBytes = 0;
+
   const mediaPromises = entries
     .filter(([name, entry]) => {
       if (entry.dir) return false;
@@ -64,6 +76,10 @@ async function extractZip(file: File): Promise<ExtractedUpload> {
     .map(async ([name, entry]) => {
       const basename = name.split("/").pop() ?? name;
       const blob = await entry.async("blob");
+      accumulatedBytes += blob.size;
+      if (accumulatedBytes > MAX_EXTRACTED_BYTES) {
+        throw new Error("zip_too_large");
+      }
       const mimeType = getMimeType(basename);
       const typedBlob = new Blob([blob], { type: mimeType });
       const url = URL.createObjectURL(typedBlob);

@@ -34,7 +34,9 @@ interface UseGameReturn {
   showScores: () => void;
   /** Advance to next round or finish game */
   nextRound: () => void;
-  /** Reset everything */
+  /** Restart with the same chat data — re-generates questions, resets scores, goes to lobby */
+  restartGame: () => void;
+  /** Reset everything back to upload/setup phase */
   reset: () => void;
 }
 
@@ -52,10 +54,15 @@ export function useGame(): UseGameReturn {
   const [state, setState] = useState<GameState>(INITIAL_STATE);
   const questionsRef = useRef<WhoSaidItQuestion[]>([]);
   const roundStartRef = useRef<number>(0);
+  const playerCountRef = useRef<number>(0);
+  const chatRef = useRef<ParsedChat | null>(null);
 
   const initGame = useCallback(
     (chat: ParsedChat, settings?: Partial<GameSettings>) => {
       const merged = { ...DEFAULT_SETTINGS, ...settings };
+
+      // Store chat so restartGame can re-use it
+      chatRef.current = chat;
 
       // Generate questions
       const questions = generateWhoSaidItQuestions(
@@ -67,6 +74,9 @@ export function useGame(): UseGameReturn {
       // Adjust total rounds to available questions
       merged.totalRounds = Math.min(merged.totalRounds, questions.length);
 
+      // Reset synchronous player count so colors start fresh
+      playerCountRef.current = 0;
+
       setState({
         ...INITIAL_STATE,
         settings: merged,
@@ -77,32 +87,34 @@ export function useGame(): UseGameReturn {
   );
 
   const addPlayer = useCallback((name: string): Player => {
+    // Resolve color synchronously before setState so the returned player is correct
+    const color = PLAYER_COLORS[playerCountRef.current % PLAYER_COLORS.length];
+    playerCountRef.current += 1;
+
     const player: Player = {
       id: crypto.randomUUID(),
       name,
       avatar: name.charAt(0),
-      color: PLAYER_COLORS[0],
+      color,
       score: 0,
       streak: 0,
     };
 
-    setState((prev) => {
-      const idx = prev.players.length;
-      player.color = PLAYER_COLORS[idx % PLAYER_COLORS.length];
-      return {
-        ...prev,
-        players: [...prev.players, player],
-      };
-    });
+    setState((prev) => ({
+      ...prev,
+      players: [...prev.players, player],
+    }));
 
     return player;
   }, []);
 
   const removePlayer = useCallback((playerId: string) => {
-    setState((prev) => ({
-      ...prev,
-      players: prev.players.filter((p) => p.id !== playerId),
-    }));
+    setState((prev) => {
+      const remaining = prev.players.filter((p) => p.id !== playerId);
+      // Recalculate ref so the next addPlayer picks the right color slot
+      playerCountRef.current = remaining.length;
+      return { ...prev, players: remaining };
+    });
   }, []);
 
   const startGame = useCallback(() => {
@@ -226,9 +238,16 @@ export function useGame(): UseGameReturn {
     });
   }, []);
 
+  const restartGame = useCallback(() => {
+    if (!chatRef.current) return;
+    initGame(chatRef.current);
+  }, [initGame]);
+
   const reset = useCallback(() => {
     questionsRef.current = [];
     roundStartRef.current = 0;
+    playerCountRef.current = 0;
+    chatRef.current = null;
     setState(INITIAL_STATE);
   }, []);
 
@@ -243,6 +262,7 @@ export function useGame(): UseGameReturn {
     revealAnswer,
     showScores,
     nextRound,
+    restartGame,
     reset,
   };
 }

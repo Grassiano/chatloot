@@ -14,46 +14,56 @@ export function GameRound({ game }: GameRoundProps) {
   const { phase, currentQuestion, currentRound, settings, players } = state;
 
   const timer = useTimer(settings.timerSeconds, () => {
-    // Time's up — reveal answer
     game.revealAnswer();
   });
 
-  // Track which players have answered this round
+  // Stable refs — destructured once so useEffect deps don't thrash every render
+  const { showQuestion, revealAnswer, submitAnswer, showScores, nextRound } =
+    game;
+  const {
+    reset: timerReset,
+    start: timerStart,
+    stop: timerStop,
+  } = timer;
+
   const [answeredPlayers, setAnsweredPlayers] = useState<Set<string>>(
     new Set()
   );
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [currentPlayerIdx, setCurrentPlayerIdx] = useState(0);
+  const [showHandoff, setShowHandoff] = useState(false);
 
   // Reset state on new round
   useEffect(() => {
     setAnsweredPlayers(new Set());
     setSelectedAnswer(null);
     setCurrentPlayerIdx(0);
+    setShowHandoff(false);
   }, [currentRound]);
 
-  // Auto-advance from question to answering after dramatic pause
+  // Auto-advance from question phase to answering after dramatic pause
   useEffect(() => {
     if (phase === "question") {
-      const timeout = setTimeout(() => {
-        game.showQuestion();
-        timer.reset();
-        timer.start();
+      const id = setTimeout(() => {
+        showQuestion();
+        timerReset();
+        timerStart();
       }, 2000);
-      return () => clearTimeout(timeout);
+      return () => clearTimeout(id);
     }
-  }, [phase, game, timer]);
+  }, [phase, showQuestion, timerReset, timerStart]);
 
   const currentPlayer = currentQuestion ? players[currentPlayerIdx] : undefined;
   const allAnswered = answeredPlayers.size >= players.length;
 
-  // Auto-reveal when all players answered
+  // Auto-reveal when all players have answered — with cleanup
   useEffect(() => {
     if (allAnswered && phase === "answering") {
-      timer.stop();
-      setTimeout(() => game.revealAnswer(), 500);
+      timerStop();
+      const id = setTimeout(() => revealAnswer(), 500);
+      return () => clearTimeout(id);
     }
-  }, [allAnswered, phase, game, timer]);
+  }, [allAnswered, phase, revealAnswer, timerStop]);
 
   if (!currentQuestion) return null;
 
@@ -61,40 +71,29 @@ export function GameRound({ game }: GameRoundProps) {
     if (!currentPlayer || answeredPlayers.has(currentPlayer.id)) return;
 
     setSelectedAnswer(answer);
-    game.submitAnswer(currentPlayer.id, answer);
+    submitAnswer(currentPlayer.id, answer);
 
     const newAnswered = new Set(answeredPlayers);
     newAnswered.add(currentPlayer.id);
     setAnsweredPlayers(newAnswered);
 
-    // Move to next player after brief delay
     setTimeout(() => {
       setSelectedAnswer(null);
       if (currentPlayerIdx < players.length - 1) {
-        setCurrentPlayerIdx((prev) => prev + 1);
+        // More players left — show handoff screen before advancing
+        setShowHandoff(true);
       }
+      // If last player, allAnswered effect handles the reveal
     }, 600);
   }
 
+  const nextPlayerForHandoff = players[currentPlayerIdx + 1];
+
   return (
     <div className="flex min-h-[calc(100vh-52px)] flex-col bg-[#0D1117] text-white">
-      {/* Timer bar */}
+      {/* Timer bar — isolated sub-component, re-renders independently */}
       {(phase === "answering" || phase === "question") && (
-        <div className="h-1.5 w-full bg-[#21262D]">
-          <motion.div
-            className="h-full origin-right"
-            style={{
-              backgroundColor:
-                timer.progress > 0.5
-                  ? "#00A884"
-                  : timer.progress > 0.2
-                    ? "#E2A829"
-                    : "#FF6B6B",
-            }}
-            animate={{ scaleX: timer.progress }}
-            transition={{ duration: 0.1 }}
-          />
-        </div>
+        <TimerBar timer={timer} />
       )}
 
       {/* Round counter */}
@@ -141,7 +140,6 @@ export function GameRound({ game }: GameRoundProps) {
               exit={{ opacity: 0 }}
               className="w-full max-w-lg"
             >
-              {/* The message */}
               <MessageBubble text={currentQuestion.messageText} />
 
               {/* Current player indicator */}
@@ -188,17 +186,18 @@ export function GameRound({ game }: GameRoundProps) {
                 })}
               </div>
 
-              {/* Answered indicator */}
+              {/* Per-player answered dots — colored when answered */}
               {players.length > 1 && (
                 <div className="mt-4 flex justify-center gap-1.5">
                   {players.map((p) => (
                     <div
                       key={p.id}
-                      className={`h-2 w-2 rounded-full transition-colors ${
-                        answeredPlayers.has(p.id)
-                          ? "bg-[#00A884]"
-                          : "bg-[#30363D]"
-                      }`}
+                      className="h-2 w-2 rounded-full transition-colors"
+                      style={{
+                        backgroundColor: answeredPlayers.has(p.id)
+                          ? p.color
+                          : "#30363D",
+                      }}
                     />
                   ))}
                 </div>
@@ -281,7 +280,7 @@ export function GameRound({ game }: GameRoundProps) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.2 }}
-                onClick={game.showScores}
+                onClick={showScores}
                 className="mt-6 rounded-xl bg-[#E2A829] px-6 py-3 text-[15px] font-bold text-[#0D1117] transition-transform hover:scale-105 active:scale-95"
               >
                 טבלת ניקוד
@@ -336,7 +335,7 @@ export function GameRound({ game }: GameRoundProps) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                onClick={game.nextRound}
+                onClick={nextRound}
                 className="mt-8 w-full rounded-xl bg-[#E2A829] py-4 text-[16px] font-bold text-[#0D1117] transition-transform hover:scale-[1.02] active:scale-[0.98]"
               >
                 {currentRound < settings.totalRounds
@@ -347,6 +346,70 @@ export function GameRound({ game }: GameRoundProps) {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Pass-and-play handoff overlay */}
+      <AnimatePresence>
+        {showHandoff && nextPlayerForHandoff && (
+          <motion.div
+            key="handoff"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0D1117]"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ delay: 0.1, duration: 0.3 }}
+              className="flex flex-col items-center gap-6 px-8 text-center"
+            >
+              <p className="text-[18px] font-medium text-[#8B949E]">
+                העבירו את הטלפון ל-
+              </p>
+              <p
+                className="text-[32px] font-black"
+                style={{ color: nextPlayerForHandoff.color }}
+              >
+                {nextPlayerForHandoff.name}
+              </p>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setCurrentPlayerIdx((prev) => prev + 1);
+                  setShowHandoff(false);
+                }}
+                className="mt-4 rounded-2xl bg-[#E2A829] px-10 py-4 text-[17px] font-bold text-[#0D1117] transition-transform hover:scale-105 active:scale-95"
+              >
+                אני מוכן/ה
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// Isolated timer sub-component — re-renders at 100ms intervals without
+// pulling the entire GameRound tree along for the ride.
+function TimerBar({ timer }: { timer: ReturnType<typeof useTimer> }) {
+  const { progress, timeLeft } = timer;
+
+  const color =
+    progress > 0.5 ? "#00A884" : progress > 0.2 ? "#E2A829" : "#FF6B6B";
+
+  return (
+    <div className="h-1.5 w-full bg-[#21262D]">
+      <div
+        className="h-full origin-left"
+        style={{
+          width: `${progress * 100}%`,
+          backgroundColor: color,
+          transition: "width 0.1s linear, background-color 0.3s ease",
+        }}
+      />
     </div>
   );
 }

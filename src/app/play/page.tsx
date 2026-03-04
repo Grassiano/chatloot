@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useGame } from "@/hooks/use-game";
 import type { ParsedChat } from "@/lib/parser/types";
-import { extractUpload } from "@/lib/parser/extract-files";
+import type { MediaFile } from "@/lib/parser/types";
+import { extractUpload, revokeMediaUrls } from "@/lib/parser/extract-files";
 import { parseWhatsAppChat } from "@/lib/parser/parse-chat";
 import { UploadStep } from "@/components/game/upload-step";
 import { LobbyStep } from "@/components/game/lobby-step";
@@ -15,9 +16,18 @@ import Link from "next/link";
 export default function PlayPage() {
   const game = useGame();
   const [chat, setChat] = useState<ParsedChat | null>(null);
+  const mediaRef = useRef<Map<string, MediaFile> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (mediaRef.current) revokeMediaUrls(mediaRef.current);
+    };
+  }, []);
 
   async function handleUpload(input: File | FileList) {
+    if (mediaRef.current) revokeMediaUrls(mediaRef.current);
     const extracted = await extractUpload(input);
+    mediaRef.current = extracted.media;
     const parsed = await parseWhatsAppChat(extracted.chatText, extracted.media);
     setChat(parsed);
     game.initGame(parsed);
