@@ -60,14 +60,29 @@ export function UploadStep({ onUpload }: UploadStepProps) {
   }, []);
 
   const handleDrop = useCallback(
-    (e: React.DragEvent) => {
+    async (e: React.DragEvent) => {
       e.preventDefault();
       dragCountRef.current = 0;
       setIsDragging(false);
 
+      // Try directory entry API first (handles folder drops)
+      const items = e.dataTransfer.items;
+      if (items?.length > 0) {
+        const entry = items[0].webkitGetAsEntry?.();
+        if (entry?.isDirectory) {
+          const fileList = await readDirectoryAsFileList(
+            entry as FileSystemDirectoryEntry
+          );
+          if (fileList.length > 0) {
+            handleFile(fileList);
+            return;
+          }
+        }
+      }
+
+      // Fallback: regular file drop
       const { files } = e.dataTransfer;
       if (files.length > 0) {
-        // If multiple files (folder), pass as FileList; single file pass as File
         if (files.length === 1) {
           handleFile(files[0]);
         } else {
@@ -208,4 +223,46 @@ export function UploadStep({ onUpload }: UploadStepProps) {
       </div>
     </motion.div>
   );
+}
+
+/** Read all files from a dropped directory using the FileSystem API */
+async function readDirectoryAsFileList(
+  dirEntry: FileSystemDirectoryEntry
+): Promise<FileList> {
+  const files = await readAllEntries(dirEntry);
+  // Build a real FileList via DataTransfer
+  const dt = new DataTransfer();
+  for (const file of files) {
+    dt.items.add(file);
+  }
+  return dt.files;
+}
+
+async function readAllEntries(
+  dirEntry: FileSystemDirectoryEntry
+): Promise<File[]> {
+  const reader = dirEntry.createReader();
+  const files: File[] = [];
+
+  // readEntries returns batches — keep reading until empty
+  const readBatch = (): Promise<FileSystemEntry[]> =>
+    new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+
+  let batch = await readBatch();
+  while (batch.length > 0) {
+    for (const entry of batch) {
+      if (entry.isFile) {
+        const file = await new Promise<File>((resolve, reject) =>
+          (entry as FileSystemFileEntry).file(resolve, reject)
+        );
+        files.push(file);
+      } else if (entry.isDirectory) {
+        const nested = await readAllEntries(entry as FileSystemDirectoryEntry);
+        files.push(...nested);
+      }
+    }
+    batch = await readBatch();
+  }
+
+  return files;
 }
