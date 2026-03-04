@@ -1,9 +1,9 @@
 import JSZip from "jszip";
 import type { MediaFile } from "./types";
 
-const MAX_EXTRACTED_BYTES = 500 * 1024 * 1024; // 500 MB
-const MAX_FILE_COUNT = 2000;
-const MAX_TXT_BYTES = 100 * 1024 * 1024; // 100 MB
+const MAX_EXTRACTED_BYTES = 5 * 1024 * 1024 * 1024; // 5 GB
+const MAX_FILE_COUNT = 50_000;
+const MAX_TXT_BYTES = 500 * 1024 * 1024; // 500 MB
 
 /** Result of extracting an upload — the chat text + any media files */
 export interface ExtractedUpload {

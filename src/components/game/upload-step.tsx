@@ -9,12 +9,22 @@ interface UploadStepProps {
 
 export function UploadStep({ onUpload }: UploadStepProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [fileName, setFileName] = useState("");
   const [error, setError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const dragCountRef = useRef(0);
 
   async function handleFile(input: File | FileList) {
+    // Show file/folder name
+    if (input instanceof File) {
+      setFileName(input.name);
+    } else if (input.length > 0) {
+      // For FileList (folder), show folder name from webkitRelativePath or file count
+      const first = input[0];
+      const folderName = first.webkitRelativePath?.split("/")[0];
+      setFileName(folderName || `${input.length} קבצים`);
+    }
     setIsLoading(true);
     setError("");
     setIsDragging(false);
@@ -157,6 +167,11 @@ export function UploadStep({ onUpload }: UploadStepProps) {
                   מכין את המשחק...
                 </p>
               </div>
+              {fileName && (
+                <p className="mt-2 text-[12px] text-[#667781]" dir="auto">
+                  {fileName}
+                </p>
+              )}
             </div>
           </div>
         ) : (
