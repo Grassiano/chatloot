@@ -1,26 +1,204 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-rubik);
+  --font-mono: var(--font-rubik);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  /* ChatLoot palette — warm, not the typical cold purple */
+  --color-loot-green: #25D366;
+  --color-loot-green-dark: #128C7E;
+  --color-loot-bg: #ECE5DD;
+  --color-loot-chat-bg: #E2DDD5;
+  --color-loot-bubble-out: #DCF8C6;
+  --color-loot-bubble-in: #ffffff;
+  --color-loot-header: #075E54;
+  --color-loot-gold: #E2A829;
+  --color-loot-gold-soft: #F5DEB3;
+  --color-loot-ink: #111B21;
+  --color-loot-ink-secondary: #667781;
+  --color-loot-teal-deep: #00A884;
+  --color-loot-coral: #FF6B6B;
+  --color-loot-purple: #7C5CFC;
+  --color-loot-amber: #F59E0B;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --radius: 0.5rem;
+  --background: #ECE5DD;
+  --foreground: #111B21;
+  --card: #ffffff;
+  --card-foreground: #111B21;
+  --popover: #ffffff;
+  --popover-foreground: #111B21;
+  --primary: #00A884;
+  --primary-foreground: #ffffff;
+  --secondary: #F0F2F5;
+  --secondary-foreground: #111B21;
+  --muted: #F0F2F5;
+  --muted-foreground: #667781;
+  --accent: #E2A829;
+  --accent-foreground: #111B21;
+  --destructive: #F44336;
+  --border: #E9EDEF;
+  --input: #E9EDEF;
+  --ring: #00A884;
+  --chart-1: #00A884;
+  --chart-2: #E2A829;
+  --chart-3: #7C5CFC;
+  --chart-4: #FF6B6B;
+  --chart-5: #128C7E;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #111B21;
+  --sidebar-primary: #00A884;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #F0F2F5;
+  --sidebar-accent-foreground: #111B21;
+  --sidebar-border: #E9EDEF;
+  --sidebar-ring: #00A884;
+}
+
+/* Game mode overrides */
+[data-mode="who-said-it"] {
+  --background: #0D1117;
+  --foreground: #F0F6FC;
+  --card: #161B22;
+  --card-foreground: #F0F6FC;
+  --primary: #E2A829;
+  --primary-foreground: #0D1117;
+  --muted: #21262D;
+  --muted-foreground: #8B949E;
+  --border: #30363D;
+}
+
+[data-mode="chat-awards"] {
+  --background: #0F0A1A;
+  --foreground: #F5F0FF;
+  --card: #1A1230;
+  --card-foreground: #F5F0FF;
+  --primary: #E2A829;
+  --primary-foreground: #0F0A1A;
+  --muted: #1A1230;
+  --muted-foreground: #9B8EC4;
+  --border: #2D2450;
+}
+
+[data-mode="time-machine"] {
+  --background: #FAF5EF;
+  --foreground: #2C1810;
+  --card: #FFFBF5;
+  --card-foreground: #2C1810;
+  --primary: #C2703A;
+  --primary-foreground: #FFFBF5;
+  --muted: #F0E8DE;
+  --muted-foreground: #8B7355;
+  --border: #E0D5C5;
+}
+
+[data-mode="caption-wars"] {
+  --background: #F0FDFA;
+  --foreground: #042F2E;
+  --card: #FFFFFF;
+  --card-foreground: #042F2E;
+  --primary: #0D9488;
+  --primary-foreground: #FFFFFF;
+  --muted: #CCFBF1;
+  --muted-foreground: #115E59;
+  --accent: #F43F5E;
+  --border: #99F6E4;
+}
+
+[data-mode="hot-seat"] {
+  --background: #18080A;
+  --foreground: #FFF1F2;
+  --card: #261214;
+  --card-foreground: #FFF1F2;
+  --primary: #EF4444;
+  --primary-foreground: #FFFFFF;
+  --muted: #261214;
+  --muted-foreground: #FDA4AF;
+  --accent: #F97316;
+  --border: #3F1618;
+}
+
+/* WhatsApp-style chat wallpaper pattern */
+.chat-wallpaper {
+  background-color: #E2DDD5;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c8c3bb' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Noise texture overlay for depth */
+.noise-overlay {
+  position: relative;
+}
+.noise-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-rubik), sans-serif;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Custom scrollbar that doesn't look default */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #c5c5c5;
+  border-radius: 3px;
 }
