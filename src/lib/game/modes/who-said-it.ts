@@ -11,6 +11,10 @@ export function generateWhoSaidItQuestions(
 ): WhoSaidItQuestion[] {
   const eligibleMessages = getEligibleMessages(chat);
 
+  if (eligibleMessages.length === 0) {
+    throw new Error("no_eligible_messages");
+  }
+
   // Shuffle and pick
   const shuffled = shuffleArray(eligibleMessages);
   const selected = shuffled.slice(0, Math.min(count, shuffled.length));

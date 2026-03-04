@@ -53,7 +53,11 @@ export default function PlayPage() {
         setIsAiEnhanced(false);
         setAnalysisState("failed");
       }
-    } catch {
+    } catch (err) {
+      // If initGame/random generation fails, let the error propagate
+      if (err instanceof Error && err.message === "no_eligible_messages") {
+        throw err;
+      }
       // AI failed — fall back to random
       game.initGame(parsed);
       setIsAiEnhanced(false);

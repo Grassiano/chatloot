@@ -13,6 +13,10 @@ export async function parseWhatsAppChat(
     parseAttachments: true,
   }) as ParsedMessage[];
 
+  if (rawMessages.length === 0) {
+    throw new Error("no_messages_parsed");
+  }
+
   // Extract unique members
   const memberMap = new Map<
     string,
@@ -48,6 +52,10 @@ export async function parseWhatsAppChat(
 
   // Sort members by message count (most active first)
   members.sort((a, b) => b.messageCount - a.messageCount);
+
+  if (members.length < 2) {
+    throw new Error("not_enough_members");
+  }
 
   const stats = extractStats(rawMessages, members);
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { motion } from "framer-motion";
+import { useState, useRef, useCallback } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface UploadStepProps {
   onUpload: (input: File | FileList) => Promise<void>;
@@ -10,26 +10,126 @@ interface UploadStepProps {
 export function UploadStep({ onUpload }: UploadStepProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const dragCountRef = useRef(0);
 
   async function handleFile(input: File | FileList) {
     setIsLoading(true);
     setError("");
+    setIsDragging(false);
     try {
       await onUpload(input);
-    } catch {
-      setError("לא הצלחתי לקרוא את הקובץ");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "";
+      const errorMap: Record<string, string> = {
+        unsupported_file_type: "סוג קובץ לא נתמך — העלו קובץ ZIP או TXT",
+        no_chat_file: "לא נמצא קובץ צ׳אט בתוך ה-ZIP",
+        too_many_files: "יותר מדי קבצים ב-ZIP",
+        zip_too_large: "הקובץ גדול מדי",
+        file_too_large: "הקובץ גדול מדי",
+        no_messages_parsed:
+          "לא הצלחתי לזהות הודעות — ודאו שזה ייצוא צ׳אט מוואטסאפ",
+        not_enough_members:
+          "נמצא פחות מ-2 חברים — צריך צ׳אט קבוצתי עם לפחות 2 משתתפים",
+        no_eligible_messages:
+          "לא נמצאו מספיק הודעות טקסט למשחק — צריך צ׳אט עם הודעות ארוכות יותר",
+      };
+      setError(
+        errorMap[message] ?? "לא הצלחתי לקרוא את הקובץ"
+      );
       setIsLoading(false);
     }
   }
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragCountRef.current += 1;
+    if (dragCountRef.current === 1) setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragCountRef.current -= 1;
+    if (dragCountRef.current === 0) setIsDragging(false);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      dragCountRef.current = 0;
+      setIsDragging(false);
+
+      const { files } = e.dataTransfer;
+      if (files.length > 0) {
+        // If multiple files (folder), pass as FileList; single file pass as File
+        if (files.length === 1) {
+          handleFile(files[0]);
+        } else {
+          handleFile(files);
+        }
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="px-3 py-4"
+      className="relative min-h-[calc(100vh-52px)] px-3 py-4"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
     >
+      {/* Full-screen drag overlay */}
+      <AnimatePresence>
+        {isDragging && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#075E54]/90 backdrop-blur-sm"
+          >
+            <motion.div
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ repeat: Infinity, duration: 1.5 }}
+              className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-white/20"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="40"
+                height="40"
+                fill="none"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </motion.div>
+            <p className="text-[18px] font-bold text-white">
+              שחררו כאן
+            </p>
+            <p className="mt-1 text-[14px] text-white/70">
+              ZIP, TXT, או תיקייה
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="mx-auto max-w-2xl">
         <div className="mb-4 flex justify-center">
           <span className="rounded-lg bg-[#FFE9B2]/70 px-3 py-1.5 text-center text-[12px] text-[#54656F] shadow-sm">
@@ -53,15 +153,7 @@ export function UploadStep({ onUpload }: UploadStepProps) {
             </div>
           </div>
         ) : (
-          <div
-            className="flex justify-start"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              const file = e.dataTransfer.files[0];
-              if (file) handleFile(file);
-            }}
-          >
+          <div className="flex justify-start">
             <div
               onClick={() => fileRef.current?.click()}
               className="group relative max-w-[85%] cursor-pointer rounded-lg rounded-tr-none bg-[#DCF8C6] p-4 shadow-sm transition-shadow hover:shadow-md sm:max-w-[70%]"
@@ -90,7 +182,7 @@ export function UploadStep({ onUpload }: UploadStepProps) {
                     העלו קובץ ZIP או TXT
                   </p>
                   <p className="text-[12px] text-[#667781]">
-                    גררו או לחצו לבחירה
+                    גררו לכל מקום במסך או לחצו לבחירה
                   </p>
                 </div>
               </div>
@@ -103,7 +195,7 @@ export function UploadStep({ onUpload }: UploadStepProps) {
         {error && (
           <div className="mt-3 flex justify-start">
             <div className="rounded-lg rounded-tr-none bg-white p-3 shadow-sm">
-              <p className="text-[13px] text-[#111B21]">{error} 😕</p>
+              <p className="text-[13px] text-[#111B21]">{error}</p>
               <button
                 onClick={() => setError("")}
                 className="mt-2 rounded-full bg-[#00A884] px-3 py-1 text-[12px] font-medium text-white"
