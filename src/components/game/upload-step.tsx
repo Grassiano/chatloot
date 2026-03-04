@@ -12,6 +12,7 @@ export function UploadStep({ onUpload }: UploadStepProps) {
   const [error, setError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const folderRef = useRef<HTMLInputElement>(null);
   const dragCountRef = useRef(0);
 
   async function handleFile(input: File | FileList) {
@@ -70,17 +71,21 @@ export function UploadStep({ onUpload }: UploadStepProps) {
       if (items?.length > 0) {
         const entry = items[0].webkitGetAsEntry?.();
         if (entry?.isDirectory) {
-          const fileList = await readDirectoryAsFileList(
-            entry as FileSystemDirectoryEntry
-          );
-          if (fileList.length > 0) {
-            handleFile(fileList);
-            return;
+          try {
+            const fileList = await readDirectoryAsFileList(
+              entry as FileSystemDirectoryEntry
+            );
+            if (fileList.length > 0) {
+              handleFile(fileList);
+              return;
+            }
+          } catch {
+            // Directory API failed — fall through to file check
           }
         }
       }
 
-      // Fallback: regular file drop
+      // Fallback: regular file(s) drop
       const { files } = e.dataTransfer;
       if (files.length > 0) {
         if (files.length === 1) {
@@ -88,7 +93,11 @@ export function UploadStep({ onUpload }: UploadStepProps) {
         } else {
           handleFile(files);
         }
+        return;
       }
+
+      // Nothing was droppable — show error
+      setError("לא הצלחתי לקרוא את מה שגררתם — נסו לבחור קובץ ZIP או תיקייה דרך הכפתור");
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
@@ -168,43 +177,81 @@ export function UploadStep({ onUpload }: UploadStepProps) {
             </div>
           </div>
         ) : (
-          <div className="flex justify-start">
-            <div
-              onClick={() => fileRef.current?.click()}
-              className="group relative max-w-[85%] cursor-pointer rounded-lg rounded-tr-none bg-[#DCF8C6] p-4 shadow-sm transition-shadow hover:shadow-md sm:max-w-[70%]"
-            >
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".zip,.txt"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleFile(f);
-                }}
-                className="hidden"
-              />
+          <>
+            {/* Hidden file inputs */}
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".zip,.txt"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleFile(f);
+              }}
+              className="hidden"
+            />
+            <input
+              ref={folderRef}
+              type="file"
+              {...{ webkitdirectory: "" } as React.InputHTMLAttributes<HTMLInputElement>}
+              onChange={(e) => {
+                const files = e.target.files;
+                if (files && files.length > 0) handleFile(files);
+              }}
+              className="hidden"
+            />
 
-              <div className="mb-3 flex items-center gap-3 rounded-lg bg-[#d3f0b5] p-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#00A884] text-white">
-                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
+            {/* ZIP/TXT file button */}
+            <div className="flex justify-start">
+              <div
+                onClick={() => fileRef.current?.click()}
+                className="group relative max-w-[85%] cursor-pointer rounded-lg rounded-tr-none bg-[#DCF8C6] p-4 shadow-sm transition-shadow hover:shadow-md sm:max-w-[70%]"
+              >
+                <div className="mb-3 flex items-center gap-3 rounded-lg bg-[#d3f0b5] p-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#00A884] text-white">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-[14px] font-medium text-[#111B21]">
+                      העלו קובץ ZIP או TXT
+                    </p>
+                    <p className="text-[12px] text-[#667781]">
+                      גררו לכל מקום במסך או לחצו לבחירה
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[14px] font-medium text-[#111B21]">
-                    העלו קובץ ZIP או TXT
-                  </p>
-                  <p className="text-[12px] text-[#667781]">
-                    גררו לכל מקום במסך או לחצו לבחירה
-                  </p>
+
+                <div className="absolute inset-0 rounded-lg border-2 border-transparent transition-colors group-hover:border-[#00A884]/30" />
+              </div>
+            </div>
+
+            {/* Folder picker button */}
+            <div className="mt-3 flex justify-start">
+              <div
+                onClick={() => folderRef.current?.click()}
+                className="group relative max-w-[85%] cursor-pointer rounded-lg rounded-tr-none bg-white p-3 shadow-sm transition-shadow hover:shadow-md sm:max-w-[70%]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F0F2F5] text-[#54656F]">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                      <path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-medium text-[#111B21]">
+                      או בחרו תיקייה
+                    </p>
+                    <p className="text-[11px] text-[#667781]">
+                      תיקיית הייצוא מוואטסאפ
+                    </p>
+                  </div>
                 </div>
               </div>
-
-              <div className="absolute inset-0 rounded-lg border-2 border-transparent transition-colors group-hover:border-[#00A884]/30" />
             </div>
-          </div>
+          </>
         )}
 
         {error && (
@@ -230,7 +277,6 @@ async function readDirectoryAsFileList(
   dirEntry: FileSystemDirectoryEntry
 ): Promise<FileList> {
   const files = await readAllEntries(dirEntry);
-  // Build a real FileList via DataTransfer
   const dt = new DataTransfer();
   for (const file of files) {
     dt.items.add(file);
@@ -244,7 +290,6 @@ async function readAllEntries(
   const reader = dirEntry.createReader();
   const files: File[] = [];
 
-  // readEntries returns batches — keep reading until empty
   const readBatch = (): Promise<FileSystemEntry[]> =>
     new Promise((resolve, reject) => reader.readEntries(resolve, reject));
 
