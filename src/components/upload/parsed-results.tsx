@@ -282,7 +282,7 @@ export function ParsedResults({ chat }: ParsedResultsProps) {
         className="flex justify-center pb-6 pt-4"
       >
         <Link
-          href="/setup/members"
+          href="/play"
           className="group flex items-center gap-3 rounded-2xl bg-[#00A884] px-6 py-4 text-white shadow-lg transition-all hover:shadow-xl active:scale-[0.98]"
         >
           <span className="text-[16px] font-bold">
