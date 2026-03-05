@@ -89,19 +89,25 @@ async function extractZip(
     const results = await Promise.all(
       batch.map(async ([name, entry]) => {
         const basename = name.split("/").pop() ?? name;
-        const blob = await entry.async("blob");
-        accumulatedBytes += blob.size;
+        const rawBlob = await entry.async("blob");
+        accumulatedBytes += rawBlob.size;
         if (accumulatedBytes > MAX_EXTRACTED_BYTES) {
           throw new Error("zip_too_large");
         }
         const mimeType = getMimeType(basename);
-        const typedBlob = new Blob([blob], { type: mimeType });
-        const url = URL.createObjectURL(typedBlob);
+        const typedBlob = new Blob([rawBlob], { type: mimeType });
+        const category = getMediaCategory(basename);
+        // Normalize image orientation (bakes EXIF rotation into pixels)
+        const finalBlob =
+          category === "image"
+            ? await normalizeImageOrientation(typedBlob)
+            : typedBlob;
+        const url = URL.createObjectURL(finalBlob);
         const mediaFile: MediaFile = {
           fileName: basename,
-          blob: typedBlob,
+          blob: finalBlob,
           url,
-          type: getMediaCategory(basename),
+          type: category,
         };
         return [basename, mediaFile] as const;
       })
@@ -155,12 +161,18 @@ async function extractFileList(
   onProgress?.({ stage: "extracting_media", current: 0, total: mediaFiles.length });
   for (let i = 0; i < mediaFiles.length; i++) {
     const file = mediaFiles[i];
-    const url = URL.createObjectURL(file);
+    const category = getMediaCategory(file.name);
+    // Normalize image orientation (bakes EXIF rotation into pixels)
+    const finalBlob =
+      category === "image"
+        ? await normalizeImageOrientation(file)
+        : file;
+    const url = URL.createObjectURL(finalBlob);
     media.set(file.name, {
       fileName: file.name,
-      blob: file,
+      blob: finalBlob,
       url,
-      type: getMediaCategory(file.name),
+      type: category,
     });
     if (i % 20 === 0) {
       onProgress?.({ stage: "extracting_media", current: i + 1, total: mediaFiles.length });
@@ -221,6 +233,47 @@ function getMediaCategory(
   if (name.match(/\.(jpg|jpeg|png|gif|webp)$/)) return "image";
   if (name.match(/\.(mp4|mov|avi|3gp)$/)) return "video";
   return "document";
+}
+
+/**
+ * Normalize image orientation using createImageBitmap + canvas.
+ * This bakes the EXIF rotation into the pixel data so every consumer
+ * (img tags, canvas, face detection) sees the correct orientation.
+ */
+async function normalizeImageOrientation(blob: Blob): Promise<Blob> {
+  try {
+    // createImageBitmap respects EXIF orientation by default
+    const bitmap = await createImageBitmap(blob);
+    const { width, height } = bitmap;
+
+    // Skip if image is tiny (sticker/thumbnail) — not worth the overhead
+    if (width * height < 10000) {
+      bitmap.close();
+      return blob;
+    }
+
+    const canvas = new OffscreenCanvas(width, height);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      bitmap.close();
+      return blob;
+    }
+
+    ctx.drawImage(bitmap, 0, 0);
+    bitmap.close();
+
+    // Convert back to blob — use JPEG for photos (smaller), keep PNG for PNGs
+    const isJpeg = blob.type === "image/jpeg" || blob.type === "image/jpg";
+    const normalized = await canvas.convertToBlob({
+      type: isJpeg ? "image/jpeg" : "image/png",
+      quality: isJpeg ? 0.92 : undefined,
+    });
+
+    return normalized;
+  } catch {
+    // Fallback: return original blob if normalization fails
+    return blob;
+  }
 }
 
 /** Clean up object URLs when no longer needed */
