@@ -6,6 +6,7 @@ import type { MemberProfile } from "@/lib/wizard/types";
 import type { SmartPhoto } from "@/lib/wizard/photo-utils";
 import type { ScannedPhoto, ScanProgress } from "@/lib/wizard/face-scanner";
 import { scanPhotos, findMatchingPhotos } from "@/lib/wizard/face-scanner";
+import { hapticTap, hapticSuccess } from "@/lib/haptics";
 
 interface PhotoMatcherProps {
   smartPhotos: SmartPhoto[];
@@ -97,6 +98,7 @@ export function PhotoMatcher({
 
   const handleSkip = useCallback(() => {
     if (!current) return;
+    hapticTap();
     const newSkipped = new Set(skipped);
     newSkipped.add(current.media.url);
     setSkipped(newSkipped);
@@ -116,6 +118,7 @@ export function PhotoMatcher({
   const handleAssign = useCallback(
     (displayName: string) => {
       if (!current) return;
+      hapticSuccess();
 
       // Assign this photo
       onAssign(displayName, current.media.url);

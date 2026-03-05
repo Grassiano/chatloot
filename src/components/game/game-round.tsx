@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { useGame } from "@/hooks/use-game";
 import { useTimer } from "@/hooks/use-timer";
+import { Confetti } from "@/components/ui/confetti";
+import { hapticTap, hapticSuccess, hapticError } from "@/lib/haptics";
 
 interface GameRoundProps {
   game: ReturnType<typeof useGame>;
@@ -31,12 +33,30 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
     new Set()
   );
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   // Reset state on new round
   useEffect(() => {
     setAnsweredPlayers(new Set());
     setSelectedAnswer(null);
+    setShowConfetti(false);
   }, [currentRound]);
+
+  // Trigger confetti + haptics on reveal when player got it right
+  useEffect(() => {
+    if (phase !== "reveal") return;
+    const currentPlayer = players[0];
+    if (!currentPlayer) return;
+    const result = state.roundResults
+      .find((r) => r.roundNumber === currentRound)
+      ?.answers.get(currentPlayer.id);
+    if (result?.isCorrect) {
+      hapticSuccess();
+      setShowConfetti(true);
+    } else {
+      hapticError();
+    }
+  }, [phase, players, state.roundResults, currentRound]);
 
   // Auto-advance from question phase to answering after dramatic pause
   useEffect(() => {
@@ -67,6 +87,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
   function handleAnswer(answer: string) {
     if (!currentPlayer || answeredPlayers.has(currentPlayer.id)) return;
 
+    hapticTap();
     setSelectedAnswer(answer);
     submitAnswer(currentPlayer.id, answer);
 
@@ -81,6 +102,8 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
 
   return (
     <div className="flex min-h-[calc(100vh-52px)] flex-col bg-[radial-gradient(circle_at_center,#141420,#0A0A0F)] text-white">
+      <Confetti active={showConfetti} count={50} duration={2500} />
+
       {/* Timer bar — isolated sub-component, re-renders independently */}
       {(phase === "answering" || phase === "question") && (
         <TimerBar timer={timer} />

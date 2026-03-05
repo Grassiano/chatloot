@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { HighlightCard, HighlightCategory } from "@/lib/wizard/types";
+import { hapticTap } from "@/lib/haptics";
 
 interface HighlightsReviewProps {
   highlights: HighlightCard[];
@@ -198,7 +199,10 @@ function HighlightCardComponent({
         </div>
 
         <button
-          onClick={() => onToggleApproval(index)}
+          onClick={() => {
+            hapticTap();
+            onToggleApproval(index);
+          }}
           className={`rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
             highlight.approved
               ? "bg-[#00A884]/10 text-[#00A884]"

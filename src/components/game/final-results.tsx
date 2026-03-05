@@ -1,7 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import type { useGame } from "@/hooks/use-game";
+import { Confetti } from "@/components/ui/confetti";
+import { hapticCelebration } from "@/lib/haptics";
 
 interface FinalResultsProps {
   game: ReturnType<typeof useGame>;
@@ -11,9 +14,19 @@ interface FinalResultsProps {
 export function FinalResults({ game, memberPhotos }: FinalResultsProps) {
   const { state } = game;
   const { players, roundResults, settings } = state;
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const sorted = [...players].sort((a, b) => b.score - a.score);
   const winner = sorted[0];
+
+  // Fire confetti + haptics on mount (winner reveal)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowConfetti(true);
+      hapticCelebration();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Calculate stats per player
   function getPlayerStats(playerId: string) {
@@ -40,6 +53,8 @@ export function FinalResults({ game, memberPhotos }: FinalResultsProps) {
 
   return (
     <div className="flex min-h-[calc(100vh-52px)] flex-col bg-[radial-gradient(ellipse_at_top,#1a1a2e,#0A0A0F)] text-white">
+      <Confetti active={showConfetti} count={80} duration={4000} />
+
       <div className="flex flex-1 flex-col items-center px-4 py-8">
         {/* Title */}
         <motion.p
