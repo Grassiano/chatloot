@@ -27,9 +27,9 @@ export function ModeSelect({ onSelect }: ModeSelectProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="flex min-h-[calc(100vh-52px)] flex-col items-center justify-center bg-[#0D1117] px-4 py-8"
+      className="flex min-h-[calc(100vh-52px)] flex-col items-center justify-center bg-[radial-gradient(ellipse_at_top,#1a1a2e,#0A0A0F)] px-4 py-8"
     >
-      <h2 className="mb-2 text-[22px] font-bold text-white">בחרו מצב משחק</h2>
+      <h2 className="mb-2 text-[24px] font-bold tracking-tight text-white">בחרו מצב משחק</h2>
       <p className="mb-8 text-[14px] text-[#8B949E]">
         מה משחקים הערב?
       </p>
@@ -46,14 +46,14 @@ export function ModeSelect({ onSelect }: ModeSelectProps) {
               transition={{ delay: i * 0.08 }}
               onClick={() => isAvailable && onSelect(mode)}
               disabled={!isAvailable}
-              className={`relative rounded-2xl p-5 text-right transition-all ${
+              className={`relative rounded-2xl border p-5 text-right transition-all ${
                 isAvailable
-                  ? "bg-[#161B22] hover:bg-[#21262D] hover:ring-2 hover:ring-[#E2A829]/50 active:scale-[0.98]"
-                  : "bg-[#161B22]/50 opacity-50"
+                  ? "border-white/10 bg-white/5 backdrop-blur-lg hover:border-[#F5C542]/50 hover:shadow-[0_0_30px_rgba(245,197,66,0.1)] active:scale-[0.98]"
+                  : "border-white/5 bg-white/[0.02] opacity-50"
               }`}
             >
               {!isAvailable && (
-                <span className="absolute left-3 top-3 rounded-full bg-[#30363D] px-2 py-0.5 text-[10px] font-bold text-[#8B949E]">
+                <span className="absolute left-3 top-3 animate-pulse rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-[#8B949E]">
                   בקרוב
                 </span>
               )}

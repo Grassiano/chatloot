@@ -133,7 +133,8 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#075E54]/90 backdrop-blur-sm"
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#075E54]/80 backdrop-blur-lg"
+            style={{ WebkitBackdropFilter: "blur(16px)" }}
           >
             <motion.div
               animate={{ scale: [1, 1.1, 1] }}
@@ -174,7 +175,7 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
 
         {isLoading ? (
           <div className="flex justify-start">
-            <div className="w-full max-w-sm rounded-lg rounded-tr-none bg-[#DCF8C6] p-4 shadow-sm">
+            <div className="w-full max-w-sm rounded-lg rounded-tr-none bg-[#D9FDD3] p-4 shadow-sm">
               {/* Stage label */}
               <AnimatePresence mode="wait">
                 <motion.p
@@ -284,7 +285,7 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
             />
 
             <div className="flex justify-start">
-              <div className="max-w-[90%] rounded-lg rounded-tr-none bg-[#DCF8C6] p-4 shadow-sm sm:max-w-[75%]">
+              <div className="max-w-[90%] rounded-lg rounded-tr-none bg-[#D9FDD3] p-4 shadow-sm sm:max-w-[75%]">
                 <p className="mb-3 text-[14px] font-medium text-[#111B21]">
                   העלו את הייצוא מוואטסאפ
                 </p>
@@ -295,7 +296,8 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
                 <div className="flex flex-col gap-2">
                   <button
                     onClick={() => fileRef.current?.click()}
-                    className="flex items-center gap-3 rounded-lg bg-[#d3f0b5] p-3 transition-colors hover:bg-[#c5e8a3] active:scale-[0.98]"
+                    className="flex items-center gap-3 rounded-lg bg-white/80 p-3 shadow-sm backdrop-blur-md transition-all hover:bg-white/90 hover:shadow-md active:scale-[0.98]"
+                    style={{ WebkitBackdropFilter: "blur(12px)" }}
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#00A884] text-white">
                       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -316,7 +318,8 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
 
                   <button
                     onClick={() => folderRef.current?.click()}
-                    className="flex items-center gap-3 rounded-lg bg-[#d3f0b5] p-3 transition-colors hover:bg-[#c5e8a3] active:scale-[0.98]"
+                    className="flex items-center gap-3 rounded-lg bg-white/80 p-3 shadow-sm backdrop-blur-md transition-all hover:bg-white/90 hover:shadow-md active:scale-[0.98]"
+                    style={{ WebkitBackdropFilter: "blur(12px)" }}
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#00A884] text-white">
                       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

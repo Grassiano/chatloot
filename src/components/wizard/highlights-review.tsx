@@ -78,7 +78,7 @@ export function HighlightsReview({
       </div>
 
       {/* Sticky bottom CTA */}
-      <div className="fixed inset-x-0 bottom-0 bg-gradient-to-t from-[#F0F2F5] via-[#F0F2F5] to-transparent px-4 pb-6 pt-8">
+      <div className="fixed inset-x-0 bottom-0 bg-gradient-to-t from-[#F0F2F5] via-[#F0F2F5]/80 to-transparent px-4 pb-6 pt-10">
         <div className="mx-auto max-w-lg">
           <button
             onClick={onComplete}
@@ -113,13 +113,14 @@ function HighlightCardComponent({
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: highlight.approved ? 1 : 0.5, y: 0 }}
-      className={`rounded-2xl bg-white p-4 shadow-sm transition-opacity ${
+      className={`rounded-2xl bg-white/90 p-4 shadow-sm backdrop-blur-lg transition-opacity ${
         !highlight.approved ? "opacity-50" : ""
       }`}
+      style={{ WebkitBackdropFilter: "blur(16px)" }}
     >
       {/* Score + reason */}
       <div className="mb-2 flex items-center gap-2">
-        <span className="rounded-md bg-[#FFE9B2] px-2 py-0.5 text-[12px] font-bold text-[#54656F]">
+        <span className="rounded-md bg-gradient-to-r from-[#FFE9B2] to-[#F5C542] px-2 py-0.5 text-[12px] font-bold text-[#54656F]">
           {highlight.aiScore}
         </span>
         <span className="text-[12px] text-[#667781]" dir="auto">
@@ -128,7 +129,7 @@ function HighlightCardComponent({
       </div>
 
       {/* Message */}
-      <div className="mb-2 rounded-lg rounded-tr-none bg-[#DCF8C6] px-3 py-2 shadow-sm">
+      <div className="mb-2 rounded-lg rounded-tr-none bg-[#D9FDD3] px-3 py-2 shadow-sm">
         <p className="text-[14px] leading-relaxed text-[#111B21]" dir="auto">
           &ldquo;{highlight.question.messageText}&rdquo;
         </p>
@@ -185,9 +186,9 @@ function HighlightCardComponent({
                   highlight.category === cat.value ? null : cat.value
                 )
               }
-              className={`rounded-full px-2 py-1 text-[12px] transition-colors ${
+              className={`rounded-full px-3 py-1.5 text-[13px] transition-colors ${
                 highlight.category === cat.value
-                  ? "bg-[#00A884] text-white"
+                  ? "bg-[#00A884] text-white ring-2 ring-[#00A884]/30"
                   : "bg-[#F0F2F5] text-[#667781] hover:bg-[#E4E6EB]"
               }`}
             >

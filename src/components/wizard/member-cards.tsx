@@ -116,7 +116,8 @@ export function MemberCards({
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.3}
               onDragEnd={handleDragEnd}
-              className="rounded-2xl bg-white p-5 shadow-lg"
+              className="rounded-3xl bg-white/85 p-5 shadow-xl backdrop-blur-xl"
+              style={{ WebkitBackdropFilter: "blur(20px)" }}
             >
               <ProfileCard
                 profile={current}
@@ -142,7 +143,7 @@ export function MemberCards({
           </button>
 
           {/* Progress dots */}
-          <div className="flex gap-1.5">
+          <div className="flex gap-1">
             {activeProfiles.map((_, i) => (
               <button
                 key={i}
@@ -150,12 +151,16 @@ export function MemberCards({
                   setDirection(i > currentIndex ? 1 : -1);
                   setCurrentIndex(i);
                 }}
-                className={`h-2 rounded-full transition-all ${
-                  i === currentIndex
-                    ? "w-5 bg-[#00A884]"
-                    : "w-2 bg-[#00A884]/30"
-                }`}
-              />
+                className="flex h-[44px] items-center justify-center px-0.5"
+              >
+                <span
+                  className={`block h-2.5 rounded-full transition-all ${
+                    i === currentIndex
+                      ? "w-5 bg-[#00A884]"
+                      : "w-2.5 bg-[#00A884]/30"
+                  }`}
+                />
+              </button>
             ))}
           </div>
 
@@ -202,7 +207,7 @@ function ProfileCard({
       />
       <button
         onClick={() => fileRef.current?.click()}
-        className="group relative flex h-20 w-20 items-center justify-center rounded-full bg-[#DFE5E7] transition-transform hover:scale-105"
+        className="group relative flex h-20 w-20 items-center justify-center rounded-full bg-[#DFE5E7] ring-2 ring-[#00A884]/30 transition-transform hover:scale-105"
       >
         {profile.photoUrl ? (
           <img
@@ -289,7 +294,7 @@ function ProfileCard({
 
       {/* Sample message */}
       {profile.sampleMessages[0] && (
-        <div className="w-full rounded-lg rounded-tr-none bg-[#DCF8C6] px-4 py-2.5 shadow-sm">
+        <div className="w-full rounded-lg rounded-tr-none bg-[#D9FDD3] px-4 py-2.5 shadow-sm">
           <p className="text-[13px] leading-relaxed text-[#111B21]" dir="auto">
             &ldquo;{profile.sampleMessages[0]}&rdquo;
           </p>

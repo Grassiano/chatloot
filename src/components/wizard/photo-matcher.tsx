@@ -267,7 +267,7 @@ export function PhotoMatcher({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.2 }}
-            className="relative max-h-[45vh] w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl"
+            className="relative max-h-[45vh] w-full max-w-sm overflow-hidden rounded-2xl ring-1 ring-white/10 shadow-2xl"
           >
             <img
               src={current.media.url}
@@ -278,7 +278,7 @@ export function PhotoMatcher({
 
             {/* Face count badge */}
             {scannedCurrent.faceCount > 0 && !assignedTo && (
-              <div className="absolute left-3 top-3 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
+              <div className="absolute left-3 top-3 rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-md" style={{ WebkitBackdropFilter: "blur(12px)" }}>
                 {scannedCurrent.faceCount === 1
                   ? "פרצוף אחד"
                   : `${scannedCurrent.faceCount} פרצופים`}
@@ -319,7 +319,7 @@ export function PhotoMatcher({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="mt-2 rounded-full bg-[#E2A829]/20 px-3 py-1 text-[13px] font-medium text-[#E2A829]"
+              className="mt-2 rounded-full bg-[#F5C542]/20 px-3 py-1 text-[13px] font-medium text-[#F5C542]"
             >
               זוהו עוד {autoMatchCount} תמונות עם אותו פרצוף
             </motion.div>
@@ -340,11 +340,12 @@ export function PhotoMatcher({
                 key={profile.displayName}
                 whileTap={{ scale: 0.92 }}
                 onClick={() => handleAssign(profile.displayName)}
-                className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 transition-colors ${
+                className={`flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 transition-all ${
                   isSender
-                    ? "bg-[#00A884]/20 ring-1 ring-[#00A884]/50"
-                    : "bg-[#161B22] hover:bg-[#21262D]"
+                    ? "border-[#00A884]/50 bg-[#00A884]/20 shadow-[0_0_12px_rgba(0,168,132,0.3)]"
+                    : "border-white/10 bg-white/10 backdrop-blur-md hover:border-white/20 hover:bg-white/15"
                 } active:bg-[#00A884]/30`}
+                style={{ WebkitBackdropFilter: "blur(12px)" }}
               >
                 <span className="text-[16px]">
                   {profile.personalityEmoji}

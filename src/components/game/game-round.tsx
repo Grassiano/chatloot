@@ -80,7 +80,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-52px)] flex-col bg-[#0D1117] text-white">
+    <div className="flex min-h-[calc(100vh-52px)] flex-col bg-[radial-gradient(circle_at_center,#141420,#0A0A0F)] text-white">
       {/* Timer bar — isolated sub-component, re-renders independently */}
       {(phase === "answering" || phase === "question") && (
         <TimerBar timer={timer} />
@@ -113,7 +113,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: [0, 1, 0.7, 1] }}
                 transition={{ duration: 1 }}
-                className="mb-6 text-[15px] font-medium text-[#E2A829]"
+                className="mb-6 text-[15px] font-medium text-[#F5C542]"
               >
                 מי אמר את זה?
               </motion.p>
@@ -165,10 +165,10 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                         answeredPlayers.has(currentPlayer.id) ||
                         allAnswered
                       }
-                      className={`flex items-center justify-center gap-2 rounded-xl px-4 py-4 text-[15px] font-medium transition-all ${
+                      className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-4 text-[15px] font-medium transition-all ${
                         isSelected
-                          ? "bg-[#E2A829] text-[#0D1117]"
-                          : "bg-[#161B22] text-white hover:bg-[#21262D]"
+                          ? "border-[#F5C542] bg-[#F5C542] text-[#0A0A0F] ring-2 ring-[#F5C542] shadow-[0_0_16px_rgba(245,197,66,0.2)]"
+                          : "border-white/10 bg-white/5 text-white backdrop-blur-md hover:border-white/20 hover:bg-white/10"
                       } disabled:opacity-40`}
                     >
                       {photoUrl && (
@@ -236,7 +236,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                       className="h-12 w-12 rounded-full object-cover"
                     />
                   )}
-                  <p className="text-[28px] font-black text-[#E2A829]">
+                  <p className="text-[28px] font-black text-[#F5C542]">
                     {currentQuestion.correctAuthor}
                   </p>
                 </div>
@@ -257,7 +257,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.5 }}
                       className={`flex items-center justify-between rounded-lg px-4 py-2 ${
-                        isCorrect ? "bg-[#00A884]/20" : "bg-[#FF6B6B]/10"
+                        isCorrect ? "bg-[#00D68F]/20" : "bg-[#FF4757]/10"
                       }`}
                     >
                       <div className="flex items-center gap-2">
@@ -273,7 +273,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                       </div>
                       <span
                         className={`text-[14px] font-bold ${
-                          isCorrect ? "text-[#00A884]" : "text-[#FF6B6B]"
+                          isCorrect ? "text-[#00D68F]" : "text-[#FF4757]"
                         }`}
                       >
                         {isCorrect ? `+${result?.scoreAwarded}` : "✕"}
@@ -288,7 +288,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.2 }}
                 onClick={showScores}
-                className="mt-6 rounded-xl bg-[#E2A829] px-6 py-3 text-[15px] font-bold text-[#0D1117] transition-transform hover:scale-105 active:scale-95"
+                className="mt-6 rounded-xl bg-[#F5C542] px-6 py-3 text-[15px] font-bold text-[#0D1117] transition-transform hover:scale-105 active:scale-95"
               >
                 טבלת ניקוד
               </motion.button>
@@ -304,7 +304,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
               exit={{ opacity: 0 }}
               className="w-full max-w-lg"
             >
-              <p className="mb-6 text-center text-[18px] font-bold text-[#E2A829]">
+              <p className="mb-6 text-center text-[18px] font-bold text-[#F5C542]">
                 טבלת ניקוד
               </p>
 
@@ -317,7 +317,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: rank * 0.1 }}
-                      className="flex items-center gap-3 rounded-xl bg-[#161B22] px-4 py-3"
+                      className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-md"
                     >
                       <span className="w-6 text-center text-[16px] font-black text-[#8B949E]">
                         {rank === 0 ? "👑" : rank + 1}
@@ -331,7 +331,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                       <span className="flex-1 text-[15px] font-medium">
                         {player.name}
                       </span>
-                      <span className="text-[16px] font-bold tabular-nums text-[#E2A829]">
+                      <span className="text-[16px] font-bold tabular-nums text-[#F5C542]">
                         {player.score}
                       </span>
                     </motion.div>
@@ -343,7 +343,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
                 onClick={nextRound}
-                className="mt-8 w-full rounded-xl bg-[#E2A829] py-4 text-[16px] font-bold text-[#0D1117] transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                className="mt-8 w-full rounded-xl bg-[#F5C542] py-4 text-[16px] font-bold text-[#0A0A0F] shadow-[0_4px_20px_rgba(245,197,66,0.3)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
               >
                 {currentRound < settings.totalRounds
                   ? "סיבוב הבא →"
@@ -385,7 +385,7 @@ function MessageBubble({ text }: { text: string }) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mx-auto max-w-sm rounded-2xl bg-[#161B22] px-5 py-4 shadow-lg"
+      className="mx-auto max-w-sm rounded-2xl border border-white/10 bg-white/5 px-5 py-4 shadow-lg backdrop-blur-lg"
     >
       <p className="text-[17px] leading-relaxed text-[#F0F6FC]">{text}</p>
     </motion.div>

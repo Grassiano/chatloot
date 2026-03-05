@@ -39,7 +39,7 @@ export function FinalResults({ game, memberPhotos }: FinalResultsProps) {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-52px)] flex-col bg-[#0D1117] text-white">
+    <div className="flex min-h-[calc(100vh-52px)] flex-col bg-[radial-gradient(ellipse_at_top,#1a1a2e,#0A0A0F)] text-white">
       <div className="flex flex-1 flex-col items-center px-4 py-8">
         {/* Title */}
         <motion.p
@@ -81,7 +81,7 @@ export function FinalResults({ game, memberPhotos }: FinalResultsProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
-              className="mt-1 text-[20px] font-bold tabular-nums text-[#E2A829]"
+              className="mt-1 text-[20px] font-bold tabular-nums text-[#F5C542]"
             >
               {winner.score} נקודות
             </motion.p>
@@ -100,8 +100,8 @@ export function FinalResults({ game, memberPhotos }: FinalResultsProps) {
                 transition={{ delay: 0.5 + rank * 0.1 }}
                 className={`rounded-xl px-4 py-3 ${
                   rank === 0
-                    ? "bg-[#E2A829]/15 ring-1 ring-[#E2A829]/30"
-                    : "bg-[#161B22]"
+                    ? "border border-[#F5C542]/30 bg-[#F5C542]/10 shadow-[0_0_20px_rgba(245,197,66,0.15)] backdrop-blur-lg"
+                    : "border border-white/10 bg-white/5 backdrop-blur-md"
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -120,7 +120,7 @@ export function FinalResults({ game, memberPhotos }: FinalResultsProps) {
                       {stats.correct}/{stats.total} נכונות · {stats.accuracy}% דיוק · {stats.avgTime}s ממוצע
                     </p>
                   </div>
-                  <span className="text-[18px] font-bold tabular-nums text-[#E2A829]">
+                  <span className="text-[18px] font-bold tabular-nums text-[#F5C542]">
                     {player.score}
                   </span>
                 </div>
@@ -138,13 +138,13 @@ export function FinalResults({ game, memberPhotos }: FinalResultsProps) {
         >
           <button
             onClick={game.reset}
-            className="flex-1 rounded-xl bg-[#161B22] py-4 text-[15px] font-bold text-white transition-transform hover:bg-[#21262D] active:scale-[0.98]"
+            className="flex-1 rounded-xl border border-white/10 bg-white/5 py-4 text-[15px] font-bold text-white backdrop-blur-md transition-all hover:border-white/20 hover:bg-white/10 active:scale-[0.98]"
           >
             משחק חדש
           </button>
           <button
             onClick={game.restartGame}
-            className="flex-1 rounded-xl bg-[#E2A829] py-4 text-[15px] font-bold text-[#0D1117] transition-transform hover:scale-[1.02] active:scale-[0.98]"
+            className="flex-1 rounded-xl bg-[#F5C542] py-4 text-[15px] font-bold text-[#0A0A0F] shadow-[0_4px_20px_rgba(245,197,66,0.3)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
           >
             שחק שוב 🔄
           </button>

@@ -50,12 +50,13 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
   }, [onComplete]);
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20, scale: 0.95 },
+    hidden: { opacity: 0, y: 20, scale: 0.95, filter: "blur(8px)" },
     visible: {
       opacity: 1,
       y: 0,
       scale: 1,
-      transition: { type: "spring" as const, stiffness: 300, damping: 25 },
+      filter: "blur(0px)",
+      transition: { type: "spring" as const, stiffness: 400, damping: 30 },
     },
   };
 
@@ -94,7 +95,7 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
             >
               <AnimatedCounter
                 value={chat.stats.totalMessages}
-                className="text-[42px] font-black text-[#00A884]"
+                className="text-[42px] font-black text-[#00A884] drop-shadow-[0_0_12px_rgba(0,168,132,0.4)]"
               />
               <span className="text-[18px] text-[#667781]">הודעות</span>
             </motion.div>
@@ -135,7 +136,7 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
               variants={itemVariants}
               initial="hidden"
               animate="visible"
-              className="rounded-xl bg-[#DCF8C6] px-5 py-3 shadow-sm"
+              className="rounded-xl bg-[#D9FDD3]/90 px-5 py-3 shadow-md backdrop-blur-sm"
             >
               <p className="text-[15px] font-medium text-[#111B21]">
                 {roast}

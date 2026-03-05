@@ -147,7 +147,7 @@ export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col">
       {/* WhatsApp-style header */}
-      <header className="sticky top-0 z-50 flex items-center gap-3 bg-[#075E54] px-4 py-2.5 text-white shadow-md">
+      <header className="sticky top-0 z-50 flex items-center gap-3 bg-gradient-to-b from-[#075E54] to-[#064E46] px-4 py-2.5 text-white shadow-md">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-lg font-bold">
           ח
         </div>
@@ -166,7 +166,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-2xl space-y-1">
           {/* Date chip */}
           <div className="flex justify-center py-2">
-            <span className="rounded-lg bg-white/80 px-3 py-1 text-[11px] text-loot-ink-secondary shadow-sm">
+            <span className="rounded-full bg-[#FFE9B2]/90 px-3 py-1 text-[11px] text-[#54656F] shadow-sm backdrop-blur-sm">
               היום
             </span>
           </div>
@@ -214,7 +214,7 @@ export default function LandingPage() {
               </Link>
               <Link
                 href="/play"
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#00A884] text-white shadow-sm transition-transform hover:scale-105 active:scale-95"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#00A884] text-white shadow-sm glow-teal-strong transition-transform hover:scale-105 active:scale-95"
                 aria-label="התחל"
               >
                 <svg
@@ -248,9 +248,9 @@ function Bubble({ msg }: { msg: ChatMessage }) {
       className={`flex ${isSelf ? "justify-start" : "justify-end"}`}
     >
       <div
-        className={`relative max-w-[85%] rounded-lg px-2.5 pb-1.5 pt-1.5 shadow-sm sm:max-w-[70%] ${
+        className={`relative max-w-[85%] rounded-lg px-2.5 pb-1.5 pt-1.5 shadow-md sm:max-w-[70%] ${
           isSelf
-            ? "rounded-tr-none bg-[#DCF8C6]"
+            ? "rounded-tr-none bg-[#D9FDD3]"
             : "rounded-tl-none bg-white"
         }`}
       >
