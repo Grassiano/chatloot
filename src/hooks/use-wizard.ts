@@ -25,7 +25,7 @@ interface UseWizardReturn {
   initFallback: (chat: ParsedChat) => void;
 
   /** Navigation */
-  goToStep: (step: 1 | 2 | 3) => void;
+  goToStep: (step: 1 | 2 | 3 | 4) => void;
 
   /** Profile actions */
   setNickname: (displayName: string, nickname: string) => void;
@@ -153,7 +153,7 @@ export function useWizard(): UseWizardReturn {
     [buildProfiles]
   );
 
-  const goToStep = useCallback((step: 1 | 2 | 3) => {
+  const goToStep = useCallback((step: 1 | 2 | 3 | 4) => {
     setState((prev) => ({ ...prev, currentStep: step }));
   }, []);
 

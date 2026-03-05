@@ -30,6 +30,7 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
   const [error, setError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const folderRef = useRef<HTMLInputElement>(null);
   const dragCountRef = useRef(0);
 
   async function handleFile(input: File | FileList) {
@@ -189,14 +190,22 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
                 </motion.p>
               </AnimatePresence>
 
-              {/* Progress bar — 4 segments */}
-              <div className="mb-2 flex gap-1">
+              {/* Progress bar — 4 segments, forced LTR so fill goes left→right */}
+              <div className="mb-2 flex gap-1" dir="ltr">
                 {STAGE_ORDER.map((stage, i) => {
                   const currentIdx = extractionProgress
                     ? STAGE_ORDER.indexOf(extractionProgress.stage)
                     : -1;
                   const isCompleted = i < currentIdx;
                   const isCurrent = i === currentIdx;
+
+                  let fillPercent = 10;
+                  if (isCurrent && extractionProgress?.total) {
+                    fillPercent = Math.max(
+                      10,
+                      (extractionProgress.current / extractionProgress.total) * 100
+                    );
+                  }
 
                   return (
                     <div
@@ -208,14 +217,19 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
                       )}
                       {isCurrent && (
                         <motion.div
+                          key={`bar-${stage}`}
                           className="absolute inset-y-0 left-0 rounded-full bg-[#00A884]"
-                          initial={{ width: "10%" }}
-                          animate={{ width: extractionProgress?.total
-                            ? `${Math.max(10, (extractionProgress.current / extractionProgress.total) * 100)}%`
-                            : ["10%", "60%", "90%"] }}
-                          transition={extractionProgress?.total
-                            ? { duration: 0.3 }
-                            : { duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                          initial={{ width: "5%" }}
+                          animate={{
+                            width: extractionProgress?.total
+                              ? `${fillPercent}%`
+                              : ["5%", "60%", "90%", "60%"],
+                          }}
+                          transition={
+                            extractionProgress?.total
+                              ? { duration: 0.3, ease: "easeOut" }
+                              : { duration: 2.5, repeat: Infinity, ease: "easeInOut" }
+                          }
                         />
                       )}
                     </div>
@@ -242,47 +256,83 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
           </div>
         ) : (
           <>
-            {/* Single hidden input that accepts files or folders */}
+            {/* File input — ZIP / TXT */}
             <input
               ref={fileRef}
               type="file"
-              multiple
+              accept=".zip,.txt"
               onChange={(e) => {
                 const files = e.target.files;
                 if (!files || files.length === 0) return;
-                if (files.length === 1) {
-                  handleFile(files[0]);
-                } else {
-                  handleFile(files);
-                }
+                handleFile(files[0]);
+              }}
+              className="hidden"
+            />
+            {/* Folder input — webkitdirectory set via ref */}
+            <input
+              ref={(el) => {
+                (folderRef as React.MutableRefObject<HTMLInputElement | null>).current = el;
+                if (el) el.setAttribute("webkitdirectory", "");
+              }}
+              type="file"
+              onChange={(e) => {
+                const files = e.target.files;
+                if (!files || files.length === 0) return;
+                handleFile(files);
               }}
               className="hidden"
             />
 
             <div className="flex justify-start">
-              <div
-                onClick={() => fileRef.current?.click()}
-                className="group relative max-w-[85%] cursor-pointer rounded-lg rounded-tr-none bg-[#DCF8C6] p-4 shadow-sm transition-shadow hover:shadow-md sm:max-w-[70%]"
-              >
-                <div className="mb-3 flex items-center gap-3 rounded-lg bg-[#d3f0b5] p-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#00A884] text-white">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="7 10 12 15 17 10" />
-                      <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-[14px] font-medium text-[#111B21]">
-                      העלו את הייצוא מוואטסאפ
-                    </p>
-                    <p className="text-[12px] text-[#667781]">
-                      גררו לכאן תיקייה, ZIP, או קובץ טקסט
-                    </p>
-                  </div>
-                </div>
+              <div className="max-w-[90%] rounded-lg rounded-tr-none bg-[#DCF8C6] p-4 shadow-sm sm:max-w-[75%]">
+                <p className="mb-3 text-[14px] font-medium text-[#111B21]">
+                  העלו את הייצוא מוואטסאפ
+                </p>
+                <p className="mb-4 text-[12px] text-[#667781]">
+                  גררו לכאן או בחרו קובץ / תיקייה
+                </p>
 
-                <div className="absolute inset-0 rounded-lg border-2 border-transparent transition-colors group-hover:border-[#00A884]/30" />
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    className="flex items-center gap-3 rounded-lg bg-[#d3f0b5] p-3 transition-colors hover:bg-[#c5e8a3] active:scale-[0.98]"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#00A884] text-white">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[13px] font-medium text-[#111B21]">
+                        קובץ ZIP או TXT
+                      </p>
+                      <p className="text-[11px] text-[#667781]">
+                        הייצוא מוואטסאפ כקובץ בודד
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => folderRef.current?.click()}
+                    className="flex items-center gap-3 rounded-lg bg-[#d3f0b5] p-3 transition-colors hover:bg-[#c5e8a3] active:scale-[0.98]"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#00A884] text-white">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                      </svg>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[13px] font-medium text-[#111B21]">
+                        תיקייה
+                      </p>
+                      <p className="text-[11px] text-[#667781]">
+                        התיקייה שנוצרה מהייצוא
+                      </p>
+                    </div>
+                  </button>
+                </div>
               </div>
             </div>
           </>

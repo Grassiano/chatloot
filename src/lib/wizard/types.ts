@@ -48,6 +48,6 @@ export interface HighlightCard {
 export interface WizardState {
   profiles: MemberProfile[];
   highlights: HighlightCard[];
-  currentStep: 1 | 2 | 3;
+  currentStep: 1 | 2 | 3 | 4;
   isAiEnhanced: boolean;
 }

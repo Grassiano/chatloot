@@ -1,19 +1,24 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { AnimatePresence } from "framer-motion";
 import type { ParsedChat } from "@/lib/parser/types";
 import type { AnalysisResult } from "@/lib/ai/analyze-chat";
 import type { WhoSaidItQuestion } from "@/lib/game/types";
 import { useWizard } from "@/hooks/use-wizard";
+import { buildSmartPhotoList } from "@/lib/wizard/photo-utils";
 import { GroupReveal } from "./group-reveal";
 import { MemberCards } from "./member-cards";
+import { PhotoMatcher } from "./photo-matcher";
 import { HighlightsReview } from "./highlights-review";
 
 interface GmSetupProps {
   chat: ParsedChat;
   analysis: AnalysisResult | null;
-  onComplete: (questions: WhoSaidItQuestion[], memberPhotos: Map<string, string>) => void;
+  onComplete: (
+    questions: WhoSaidItQuestion[],
+    memberPhotos: Map<string, string>
+  ) => void;
 }
 
 export function GmSetup({ chat, analysis, onComplete }: GmSetupProps) {
@@ -26,19 +31,36 @@ export function GmSetup({ chat, analysis, onComplete }: GmSetupProps) {
     } else {
       wizard.initFallback(chat);
     }
-    // Only run on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Build smart photo list once (memoized) — pre-filter before face scan
+  const smartPhotos = useMemo(() => buildSmartPhotoList(chat), [chat]);
+  const hasPhotos = smartPhotos.length > 0;
 
   const handleRevealComplete = useCallback(() => {
     wizard.goToStep(2);
   }, [wizard]);
 
+  // After member review → photo matcher (if photos) or highlights/finish
   const handleMembersComplete = useCallback(() => {
-    if (wizard.state.highlights.length > 0) {
+    if (hasPhotos) {
       wizard.goToStep(3);
+    } else if (wizard.state.highlights.length > 0) {
+      wizard.goToStep(4);
     } else {
-      // No AI highlights — go straight to game with fallback questions
+      const questions = wizard.buildFinalQuestions();
+      const photos = wizard.getMemberPhotoMap();
+      wizard.revokeWizardPhotos();
+      onComplete(questions, photos);
+    }
+  }, [wizard, onComplete, hasPhotos]);
+
+  // After photo matcher → highlights or finish
+  const handlePhotosDone = useCallback(() => {
+    if (wizard.state.highlights.length > 0) {
+      wizard.goToStep(4);
+    } else {
       const questions = wizard.buildFinalQuestions();
       const photos = wizard.getMemberPhotoMap();
       wizard.revokeWizardPhotos();
@@ -49,8 +71,11 @@ export function GmSetup({ chat, analysis, onComplete }: GmSetupProps) {
   const handleHighlightsComplete = useCallback(() => {
     const questions = wizard.buildFinalQuestions();
     const photos = wizard.getMemberPhotoMap();
+    wizard.revokeWizardPhotos();
     onComplete(questions, photos);
   }, [wizard, onComplete]);
+
+  const activeProfiles = wizard.state.profiles.filter((p) => !p.mergedInto);
 
   return (
     <div className="min-h-screen bg-[#F0F2F5]">
@@ -76,6 +101,16 @@ export function GmSetup({ chat, analysis, onComplete }: GmSetupProps) {
         )}
 
         {wizard.state.currentStep === 3 && (
+          <PhotoMatcher
+            key="photos"
+            smartPhotos={smartPhotos}
+            profiles={activeProfiles}
+            onAssign={wizard.tagPhoto}
+            onDone={handlePhotosDone}
+          />
+        )}
+
+        {wizard.state.currentStep === 4 && (
           <HighlightsReview
             key="highlights"
             highlights={wizard.state.highlights}

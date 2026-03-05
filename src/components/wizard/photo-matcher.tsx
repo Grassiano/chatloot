@@ -1,88 +1,221 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { MediaFile } from "@/lib/parser/types";
 import type { MemberProfile } from "@/lib/wizard/types";
+import type { SmartPhoto } from "@/lib/wizard/photo-utils";
+import type { ScannedPhoto, ScanProgress } from "@/lib/wizard/face-scanner";
+import { scanPhotos, findMatchingPhotos } from "@/lib/wizard/face-scanner";
 
 interface PhotoMatcherProps {
-  /** All media from the chat export */
-  media: Map<string, MediaFile>;
-  /** Member profiles (non-merged only) */
+  smartPhotos: SmartPhoto[];
   profiles: MemberProfile[];
-  /** Called when GM assigns a photo to a member */
   onAssign: (displayName: string, photoUrl: string) => void;
-  /** Called when matching is done (finish button or ran out of photos) */
   onDone: () => void;
 }
 
-const MAX_PHOTOS = 80;
-const SAMPLE_INTERVAL_THRESHOLD = 50;
+type Phase = "scanning" | "matching";
 
 export function PhotoMatcher({
-  media,
+  smartPhotos,
   profiles,
   onAssign,
   onDone,
 }: PhotoMatcherProps) {
-  const images = useMemo(() => {
-    const allImages = Array.from(media.values()).filter(
-      (f) => f.type === "image"
-    );
-
-    // If too many, sample every Nth
-    if (allImages.length > SAMPLE_INTERVAL_THRESHOLD) {
-      const step = Math.ceil(allImages.length / MAX_PHOTOS);
-      const sampled: MediaFile[] = [];
-      for (let i = 0; i < allImages.length && sampled.length < MAX_PHOTOS; i += step) {
-        sampled.push(allImages[i]);
-      }
-      return sampled;
-    }
-    return allImages;
-  }, [media]);
-
+  const [phase, setPhase] = useState<Phase>("scanning");
+  const [scanProgress, setScanProgress] = useState<ScanProgress>({
+    current: 0,
+    total: smartPhotos.length,
+    stage: "loading_model",
+  });
+  const [scannedPhotos, setScannedPhotos] = useState<ScannedPhoto[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [assigned, setAssigned] = useState<Map<string, string>>(new Map());
+  const [autoMatchCount, setAutoMatchCount] = useState(0);
+  const [isEmpty, setIsEmpty] = useState(false);
+  const scanStarted = useRef(false);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  const current = images[currentIdx];
-  const isLast = currentIdx >= images.length - 1;
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      timersRef.current.forEach(clearTimeout);
+    };
+  }, []);
+
+  // Start face scanning on mount
+  useEffect(() => {
+    if (scanStarted.current) return;
+    scanStarted.current = true;
+
+    scanPhotos(smartPhotos, setScanProgress)
+      .then((results) => {
+        if (results.length === 0) {
+          setIsEmpty(true);
+          return;
+        }
+        setScannedPhotos(results);
+        setPhase("matching");
+      })
+      .catch(() => {
+        // Face scanning failed — fall back to unscanned photos
+        const fallback: ScannedPhoto[] = smartPhotos.map((p) => ({
+          ...p,
+          faces: [],
+          faceCount: 0,
+          isProfileCandidate: false,
+        }));
+        setScannedPhotos(fallback);
+        setPhase("matching");
+      });
+  }, [smartPhotos]);
+
+  // Skip already-assigned photos when navigating
+  const visiblePhotos = useMemo(
+    () => scannedPhotos.filter((p) => !assigned.has(p.media.url)),
+    [scannedPhotos, assigned]
+  );
+  const current = visiblePhotos[currentIdx];
+  const isLast = currentIdx >= visiblePhotos.length - 1;
+
+  // Exit when no photos remain (replaces calling onDone() during render)
+  useEffect(() => {
+    if (isEmpty) onDone();
+  }, [isEmpty, onDone]);
+
+  useEffect(() => {
+    if (phase === "matching" && visiblePhotos.length === 0) {
+      onDone();
+    }
+  }, [phase, visiblePhotos.length, onDone]);
 
   const advance = useCallback(() => {
-    if (isLast) {
+    if (isLast || visiblePhotos.length <= 1) {
       onDone();
     } else {
-      setCurrentIdx((i) => i + 1);
+      setCurrentIdx((i) => Math.min(i + 1, visiblePhotos.length - 1));
     }
-  }, [isLast, onDone]);
+  }, [isLast, onDone, visiblePhotos.length]);
 
   const handleAssign = useCallback(
     (displayName: string) => {
       if (!current) return;
-      onAssign(displayName, current.url);
-      setAssigned((prev) => {
-        const next = new Map(prev);
-        next.set(current.url, displayName);
-        return next;
-      });
-      // Auto-advance after a short delay
-      setTimeout(advance, 300);
+
+      // Assign this photo
+      onAssign(displayName, current.media.url);
+
+      const newAssigned = new Map(assigned);
+      newAssigned.set(current.media.url, displayName);
+
+      // Auto-match: find other photos with the same face
+      if (current.faces.length > 0 && current.faces[0].embedding.length > 0) {
+        const matches = findMatchingPhotos(
+          current,
+          scannedPhotos,
+          new Set(newAssigned.keys())
+        );
+
+        let autoCount = 0;
+        for (const matchUrl of matches) {
+          onAssign(displayName, matchUrl);
+          newAssigned.set(matchUrl, displayName);
+          autoCount++;
+        }
+
+        if (autoCount > 0) {
+          setAutoMatchCount(autoCount);
+          const t1 = setTimeout(() => setAutoMatchCount(0), 2000);
+          timersRef.current.push(t1);
+        }
+      }
+
+      setAssigned(newAssigned);
+
+      // Advance after brief delay
+      const t2 = setTimeout(() => {
+        // Recalculate visible photos after assignment
+        const nextVisible = scannedPhotos.filter(
+          (p) => !newAssigned.has(p.media.url)
+        );
+        if (nextVisible.length === 0) {
+          onDone();
+        } else {
+          setCurrentIdx((prev) => Math.min(prev, nextVisible.length - 1));
+        }
+      }, 400);
+      timersRef.current.push(t2);
     },
-    [current, onAssign, advance]
+    [current, assigned, scannedPhotos, onAssign, onDone]
   );
 
-  if (images.length === 0) {
-    // No images — skip matching entirely
-    onDone();
+  // Scanning phase
+  if (phase === "scanning") {
+    const percent =
+      scanProgress.total > 0
+        ? Math.round((scanProgress.current / scanProgress.total) * 100)
+        : 0;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0D1117]"
+      >
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+          className="mb-6 text-[48px]"
+        >
+          🔍
+        </motion.div>
+        <p className="mb-2 text-[18px] font-bold text-white">
+          {scanProgress.stage === "loading_model"
+            ? "טוען מודל זיהוי פנים..."
+            : "סורק תמונות..."}
+        </p>
+        <p className="mb-6 text-[14px] text-[#8B949E]">
+          {scanProgress.stage === "scanning"
+            ? `${scanProgress.current} / ${scanProgress.total} תמונות`
+            : "רגע אחד..."}
+        </p>
+
+        {/* Progress bar */}
+        <div className="mx-auto h-1.5 w-64 overflow-hidden rounded-full bg-[#21262D]" dir="ltr">
+          <motion.div
+            className="h-full rounded-full bg-[#00A884]"
+            initial={{ width: "0%" }}
+            animate={{
+              width:
+                scanProgress.stage === "loading_model"
+                  ? ["0%", "30%", "50%"]
+                  : `${percent}%`,
+            }}
+            transition={
+              scanProgress.stage === "loading_model"
+                ? { duration: 3, ease: "easeInOut" }
+                : { duration: 0.3 }
+            }
+          />
+        </div>
+
+        <button
+          onClick={onDone}
+          className="mt-8 rounded-lg bg-[#21262D] px-4 py-2 text-[13px] text-[#8B949E] transition-colors hover:bg-[#30363D] hover:text-white"
+        >
+          דלגו על זיהוי פנים
+        </button>
+      </motion.div>
+    );
+  }
+
+  // No photos with faces — useEffect above handles calling onDone()
+  if (visiblePhotos.length === 0 || !current) {
     return null;
   }
 
-  if (!current) {
-    onDone();
-    return null;
-  }
-
-  const assignedTo = assigned.get(current.url);
+  const assignedTo = assigned.get(current.media.url);
+  const scannedCurrent = current as ScannedPhoto;
 
   return (
     <motion.div
@@ -100,9 +233,9 @@ export function PhotoMatcher({
           סיום
         </button>
         <div className="text-center">
-          <h2 className="text-[16px] font-bold text-white">מי זה?</h2>
+          <h2 className="text-[16px] font-bold text-white">מי בתמונה?</h2>
           <p className="text-[12px] text-[#8B949E]">
-            {currentIdx + 1} / {images.length}
+            {currentIdx + 1} / {visiblePhotos.length}
           </p>
         </div>
         <button
@@ -114,32 +247,44 @@ export function PhotoMatcher({
       </div>
 
       {/* Progress bar */}
-      <div className="h-1 w-full bg-[#21262D]">
+      <div className="h-1 w-full bg-[#21262D]" dir="ltr">
         <motion.div
           className="h-full bg-[#00A884]"
           initial={false}
-          animate={{ width: `${((currentIdx + 1) / images.length) * 100}%` }}
+          animate={{
+            width: `${((currentIdx + 1) / visiblePhotos.length) * 100}%`,
+          }}
           transition={{ duration: 0.3 }}
         />
       </div>
 
       {/* Photo display */}
-      <div className="flex flex-1 items-center justify-center overflow-hidden px-4 py-4">
+      <div className="flex flex-1 flex-col items-center justify-center overflow-hidden px-4 py-4">
         <AnimatePresence mode="wait">
           <motion.div
-            key={current.url}
+            key={current.media.url}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.2 }}
-            className="relative max-h-[50vh] w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl"
+            className="relative max-h-[45vh] w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl"
           >
             <img
-              src={current.url}
-              alt=""
+              src={current.media.url}
+              alt="תמונה לזיהוי"
               className="h-full w-full object-contain"
               draggable={false}
             />
+
+            {/* Face count badge */}
+            {scannedCurrent.faceCount > 0 && !assignedTo && (
+              <div className="absolute left-3 top-3 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
+                {scannedCurrent.faceCount === 1
+                  ? "פרצוף אחד"
+                  : `${scannedCurrent.faceCount} פרצופים`}
+              </div>
+            )}
+
             {assignedTo && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -153,24 +298,63 @@ export function PhotoMatcher({
             )}
           </motion.div>
         </AnimatePresence>
+
+        {/* Sender hint */}
+        {current.sender && !assignedTo && (
+          <motion.p
+            key={`hint-${current.media.url}`}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-3 text-[13px] text-[#8B949E]"
+          >
+            נשלח על ידי{" "}
+            <span className="font-medium text-white">{current.sender}</span>
+          </motion.p>
+        )}
+
+        {/* Auto-match notification */}
+        <AnimatePresence>
+          {autoMatchCount > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mt-2 rounded-full bg-[#E2A829]/20 px-3 py-1 text-[13px] font-medium text-[#E2A829]"
+            >
+              זוהו עוד {autoMatchCount} תמונות עם אותו פרצוף
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Member chips — horizontal scroll */}
+      {/* Member chips — horizontal scroll, sender highlighted */}
       <div className="border-t border-[#21262D] px-3 pb-6 pt-3">
         <div className="flex gap-2 overflow-x-auto pb-2" dir="rtl">
-          {profiles.map((profile) => (
-            <motion.button
-              key={profile.displayName}
-              whileTap={{ scale: 0.92 }}
-              onClick={() => handleAssign(profile.displayName)}
-              className="flex shrink-0 items-center gap-2 rounded-full bg-[#161B22] px-4 py-2.5 transition-colors hover:bg-[#21262D] active:bg-[#00A884]/20"
-            >
-              <span className="text-[16px]">{profile.personalityEmoji}</span>
-              <span className="whitespace-nowrap text-[14px] font-medium text-white">
-                {profile.nickname}
-              </span>
-            </motion.button>
-          ))}
+          {profiles.map((profile) => {
+            const isSender =
+              current.sender === profile.displayName ||
+              current.sender === profile.nickname;
+
+            return (
+              <motion.button
+                key={profile.displayName}
+                whileTap={{ scale: 0.92 }}
+                onClick={() => handleAssign(profile.displayName)}
+                className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 transition-colors ${
+                  isSender
+                    ? "bg-[#00A884]/20 ring-1 ring-[#00A884]/50"
+                    : "bg-[#161B22] hover:bg-[#21262D]"
+                } active:bg-[#00A884]/30`}
+              >
+                <span className="text-[16px]">
+                  {profile.personalityEmoji}
+                </span>
+                <span className="whitespace-nowrap text-[14px] font-medium text-white">
+                  {profile.nickname}
+                </span>
+              </motion.button>
+            );
+          })}
         </div>
       </div>
     </motion.div>

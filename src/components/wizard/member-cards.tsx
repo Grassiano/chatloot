@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence, type PanInfo } from "framer-motion";
 import type { MemberProfile } from "@/lib/wizard/types";
 import type { ParsedChat } from "@/lib/parser/types";
-import { PhotoMatcher } from "./photo-matcher";
 
 interface MemberCardsProps {
   profiles: MemberProfile[];
@@ -17,8 +16,6 @@ interface MemberCardsProps {
 
 const SWIPE_THRESHOLD = 80;
 
-type SubPhase = "matching" | "review";
-
 export function MemberCards({
   profiles,
   chat,
@@ -27,14 +24,6 @@ export function MemberCards({
   onTagPhoto,
   onComplete,
 }: MemberCardsProps) {
-  // Determine if we have images to match
-  const hasImages = Array.from(chat.media.values()).some(
-    (f) => f.type === "image"
-  );
-
-  const [subPhase, setSubPhase] = useState<SubPhase>(
-    hasImages ? "matching" : "review"
-  );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
 
@@ -69,10 +58,6 @@ export function MemberCards({
     [goNext, goPrev]
   );
 
-  const handleMatcherDone = useCallback(() => {
-    setSubPhase("review");
-  }, []);
-
   const handleDeviceUpload = useCallback(
     (displayName: string, file: File) => {
       const url = URL.createObjectURL(file);
@@ -80,18 +65,6 @@ export function MemberCards({
     },
     [onSetPhoto]
   );
-
-  // Photo Matcher sub-phase
-  if (subPhase === "matching") {
-    return (
-      <PhotoMatcher
-        media={chat.media}
-        profiles={activeProfiles}
-        onAssign={onTagPhoto}
-        onDone={handleMatcherDone}
-      />
-    );
-  }
 
   if (!current) return null;
 
@@ -389,17 +362,27 @@ function VoicePlayer({ url }: { url: string }) {
           </svg>
         )}
       </button>
-      <div className="flex flex-1 items-center gap-0.5">
-        {Array.from({ length: 20 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-3 w-1 rounded-full bg-[#00A884]/40"
-            style={{
-              height: `${6 + Math.random() * 14}px`,
-            }}
-          />
-        ))}
-      </div>
+      <WaveformBars />
+    </div>
+  );
+}
+
+/** Pre-generated waveform bar heights to avoid Math.random() in render */
+function WaveformBars() {
+  const heights = useMemo(
+    () => Array.from({ length: 20 }, () => 6 + Math.random() * 14),
+    []
+  );
+
+  return (
+    <div className="flex flex-1 items-center gap-0.5">
+      {heights.map((h, i) => (
+        <div
+          key={i}
+          className="h-3 w-1 rounded-full bg-[#00A884]/40"
+          style={{ height: `${h}px` }}
+        />
+      ))}
     </div>
   );
 }

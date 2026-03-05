@@ -23,10 +23,15 @@ export async function parseWhatsAppChat(
     { messages: ParsedMessage[]; firstSeen: Date; lastSeen: Date }
   >();
 
+  // Extract group name early so we can filter it out as a member
+  const groupName = extractGroupName(rawMessages);
+
   for (const msg of rawMessages) {
     if (!msg.author) continue; // skip system messages
     if (isSystemAuthor(msg.author)) continue; // skip WhatsApp pseudo-authors
     if (isSystemMessage(msg.message)) continue; // skip "X added Y" style messages
+    // Skip group name appearing as author (WhatsApp sometimes does this)
+    if (groupName && msg.author === groupName) continue;
 
     const existing = memberMap.get(msg.author);
     if (existing) {
@@ -40,6 +45,18 @@ export async function parseWhatsAppChat(
         lastSeen: msg.date,
       });
     }
+  }
+
+  // Remove "members" with only 1-2 messages that are all system-like or media-omitted
+  for (const [name, data] of memberMap) {
+    if (data.messages.length > 3) continue;
+    const allJunk = data.messages.every(
+      (m) =>
+        isMediaOmitted(m.message) ||
+        isSystemMessage(m.message) ||
+        m.message.trim().length === 0
+    );
+    if (allJunk) memberMap.delete(name);
   }
 
   const members: ChatMember[] = Array.from(memberMap.entries()).map(
@@ -60,9 +77,6 @@ export async function parseWhatsAppChat(
   }
 
   const stats = extractStats(rawMessages, members);
-
-  // Try to extract group name from system messages
-  const groupName = extractGroupName(rawMessages);
 
   return {
     messages: rawMessages,
@@ -107,6 +121,9 @@ function isSystemAuthor(author: string): boolean {
   // Phone-number-only names (e.g. "+972 50-123-4567")
   if (/^[\d\s+\-().]+$/.test(author)) return true;
 
+  // Very short "authors" that are likely parsing artifacts (single char, tilde)
+  if (author.trim().length <= 1) return true;
+
   const lower = author.toLowerCase();
   const systemPatterns = [
     // English system strings
@@ -126,6 +143,15 @@ function isSystemAuthor(author: string): boolean {
     "turned on disappearing",
     "turned off disappearing",
     "joined using",
+    "waiting for this message",
+    "message timer",
+    "blocked this contact",
+    "unblocked this contact",
+    "business account",
+    "your security code",
+    "you changed this group",
+    "this chat is with a business",
+    "tap for more info",
     // Hebrew system strings
     "הודעות ושיחות",
     "מוצפנות מקצה",
@@ -144,19 +170,38 @@ function isSystemAuthor(author: string): boolean {
     "הפעילה הודעות נעלמות",
     "כיבה הודעות נעלמות",
     "כיבתה הודעות נעלמות",
+    "ממתין להודעה זו",
+    "חשבון עסקי",
+    "הקש למידע נוסף",
+    "קוד האבטחה שלך",
   ];
 
   return systemPatterns.some((p) => lower.includes(p));
 }
 
+function isMediaOmitted(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("<media omitted>") ||
+    lower.includes("מדיה לא נכללה") ||
+    lower.includes("<attached:") ||
+    lower.includes("(file attached)")
+  );
+}
+
 /** Filter out system-generated messages even when they have a real author */
 function isSystemMessage(message: string): boolean {
   const lower = message.toLowerCase();
+
+  // Exact matches for very short system messages
+  const exactMatches = ["left", "עזב", "עזבה"];
+  if (exactMatches.includes(lower.trim())) return true;
+
   const patterns = [
     // English
-    "added",
-    "removed",
-    "left",
+    " added ",
+    " removed ",
+    " left the group",
     "joined using this group",
     "changed the subject",
     "changed the group",
@@ -166,16 +211,19 @@ function isSystemMessage(message: string): boolean {
     "is no longer an admin",
     "turned on disappearing",
     "turned off disappearing",
+    "was added",
+    "was removed",
     // Hebrew
     "הוסיף את",
     "הוסיפה את",
     "הוסיף/ה את",
-    "הוסר",
-    "הוסרה",
+    "הוסר/ה",
+    "הוסר מהקבוצה",
+    "הוסרה מהקבוצה",
     "הצטרף באמצעות",
     "הצטרפה באמצעות",
-    "עזב",
-    "עזבה",
+    "עזב את הקבוצה",
+    "עזבה את הקבוצה",
     "שינה את נושא",
     "שינתה את נושא",
     "שינה את סמל",
@@ -186,6 +234,9 @@ function isSystemMessage(message: string): boolean {
     "הפעילה הודעות נעלמות",
     "כיבה הודעות נעלמות",
     "כיבתה הודעות נעלמות",
+    "הוזמן/ה לקבוצה",
+    "צורף/ה לקבוצה",
+    "הצטרף/ה באמצעות",
   ];
 
   return patterns.some((p) => lower.includes(p));

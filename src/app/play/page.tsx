@@ -130,6 +130,7 @@ export default function PlayPage() {
       <header className="sticky top-0 z-50 flex items-center gap-3 bg-[#075E54] px-4 py-2.5 text-white shadow-md">
         <Link
           href="/"
+          aria-label="חזרה לדף הבית"
           className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-white/10"
         >
           <svg
@@ -163,7 +164,7 @@ export default function PlayPage() {
       </header>
 
       <main
-        className={`flex-1 ${flowPhase === "upload" ? "chat-wallpaper" : ""}`}
+        className={`min-h-[calc(100vh-52px)] flex-1 ${flowPhase === "upload" ? "chat-wallpaper" : ""}`}
       >
         <AnimatePresence mode="wait">
           {flowPhase === "upload" && (
