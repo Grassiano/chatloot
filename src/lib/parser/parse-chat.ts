@@ -25,6 +25,7 @@ export async function parseWhatsAppChat(
 
   for (const msg of rawMessages) {
     if (!msg.author) continue; // skip system messages
+    if (isSystemAuthor(msg.author)) continue; // skip WhatsApp pseudo-authors
 
     const existing = memberMap.get(msg.author);
     if (existing) {
@@ -98,6 +99,42 @@ function extractGroupName(messages: ParsedMessage[]): string | null {
   }
 
   return null;
+}
+
+/** Filter out WhatsApp system pseudo-authors that the parser sometimes misidentifies */
+function isSystemAuthor(author: string): boolean {
+  const lower = author.toLowerCase();
+  const systemPatterns = [
+    "end-to-end encrypted",
+    "messages and calls",
+    "הודעות ושיחות",
+    "מוצפנות מקצה",
+    "you were added",
+    "הוספת",
+    "הוסיף",
+    "הצטרף",
+    "left",
+    "removed",
+    "changed the subject",
+    "changed the group",
+    "שינה את",
+    "שינתה את",
+    "created group",
+    "יצר את הקבוצה",
+    "יצרה את הקבוצה",
+    "security code changed",
+    "קוד האבטחה השתנה",
+    "this message was deleted",
+    "הודעה זו נמחקה",
+    "you deleted this message",
+    "מחקת הודעה זו",
+    "missed voice call",
+    "missed video call",
+    "שיחת קול שלא נענתה",
+    "שיחת וידאו שלא נענתה",
+  ];
+
+  return systemPatterns.some((p) => lower.includes(p));
 }
 
 export function isMediaMessage(message: string): boolean {
