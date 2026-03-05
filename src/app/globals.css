@@ -191,6 +191,11 @@
   }
 }
 
+/* Ensure EXIF orientation is respected by all images */
+img {
+  image-orientation: from-image;
+}
+
 /* Glassmorphism utilities */
 .glass-light {
   background: rgba(255, 255, 255, 0.85);

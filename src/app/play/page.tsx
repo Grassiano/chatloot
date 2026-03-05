@@ -62,9 +62,17 @@ export default function PlayPage() {
     if (mediaRef.current) revokeMediaUrls(mediaRef.current);
     const extracted = await extractUpload(input, setExtractionProgress);
     mediaRef.current = extracted.media;
+    // Pass file name to parser for group name extraction from export filename
+    const uploadName =
+      input instanceof File
+        ? input.name
+        : input.length > 0
+          ? (input[0].webkitRelativePath?.split("/")[0] ?? input[0].name)
+          : undefined;
     const parsed = await parseWhatsAppChat(
       extracted.chatText,
-      extracted.media
+      extracted.media,
+      uploadName
     );
     setChat(parsed);
     setFlowPhase("analyzing");

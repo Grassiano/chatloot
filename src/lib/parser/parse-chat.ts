@@ -4,7 +4,8 @@ import { extractStats } from "./extract-stats";
 
 export async function parseWhatsAppChat(
   content: string,
-  media?: Map<string, MediaFile>
+  media?: Map<string, MediaFile>,
+  fileName?: string
 ): Promise<ParsedChat> {
   // Strip invisible Unicode LTR marks (iOS exports add these)
   const cleaned = content.replace(/\u200e/g, "");
@@ -24,7 +25,7 @@ export async function parseWhatsAppChat(
   >();
 
   // Extract group name early so we can filter it out as a member
-  const groupName = extractGroupName(rawMessages);
+  const groupName = extractGroupName(rawMessages, fileName);
 
   for (const msg of rawMessages) {
     if (!msg.author) continue; // skip system messages
@@ -95,18 +96,35 @@ export async function parseWhatsAppChat(
   };
 }
 
-function extractGroupName(messages: ParsedMessage[]): string | null {
-  // Look for group creation system messages
-  // Hebrew: "אליס יצרה את הקבוצה "שם הקבוצה""
-  // English: 'Alice created group "Group Name"'
+function extractGroupName(
+  messages: ParsedMessage[],
+  fileName?: string
+): string | null {
+  // 1. Try extracting from the file name first — most reliable source
+  // WhatsApp exports are named "WhatsApp Chat with GroupName.txt" or
+  // "WhatsApp Chat - GroupName.zip" or "צ'אט WhatsApp עם GroupName.txt"
+  if (fileName) {
+    const nameOnly = fileName.replace(/\.(zip|txt)$/i, "").trim();
+    const enFileMatch = nameOnly.match(
+      /WhatsApp Chat (?:with|-)[\s]*(.+)/i
+    );
+    if (enFileMatch) return enFileMatch[1].trim();
+    const heFileMatch = nameOnly.match(/צ'?אט WhatsApp עם[\s]*(.+)/i);
+    if (heFileMatch) return heFileMatch[1].trim();
+    // Folder name pattern (unzipped): "WhatsApp Chat with GroupName"
+    const folderMatch = nameOnly.match(/^WhatsApp Chat[\s\-]+(.+)/i);
+    if (folderMatch) return folderMatch[1].trim();
+  }
+
+  // 2. Try system messages in the chat
   for (const msg of messages) {
     if (msg.author !== null) continue;
 
-    // Try Hebrew pattern
+    // Try Hebrew group creation
     const heMatch = msg.message.match(/יצר[הא] את הקבוצה "(.+?)"/);
     if (heMatch) return heMatch[1];
 
-    // Try English pattern
+    // Try English group creation
     const enMatch = msg.message.match(/created group "(.+?)"/);
     if (enMatch) return enMatch[1];
 
@@ -120,15 +138,11 @@ function extractGroupName(messages: ParsedMessage[]): string | null {
     );
     if (enSubject) return enSubject[1];
 
-    // Fallback: "Messages and calls are end-to-end encrypted" lines sometimes
-    // contain the group name. Also catch Hebrew encryption notice that may
-    // include the group name.
-    // Pattern: "X הוסיף את Y." or "X added Y." — extract the group context
+    // Skip "added" messages — those contain person names
     const addedHe = msg.message.match(/^(.+?) הוסיפ?[הא]? את .+/);
-    if (addedHe) continue; // these are person names, not group names
+    if (addedHe) continue;
 
-    // Some exports have a first system message that IS the group name or
-    // "Group name: <name>" — catch quoted group names in system messages
+    // Quoted group name in system message
     const quotedName = msg.message.match(/^"(.+?)"$/);
     if (quotedName) return quotedName[1];
   }
@@ -138,52 +152,88 @@ function extractGroupName(messages: ParsedMessage[]): string | null {
 
 /**
  * Detect if an "author" is actually the group name that leaked through.
- * Heuristic: if ALL their messages are system-like or very short (≤2 chars),
- * and their name appears in system messages referring to the group, they're
- * likely the group name, not a real person.
+ * Multi-layer heuristic — checks system messages, message patterns, and
+ * compares behavior to other members in the chat.
  */
 function isLikelyGroupName(
   author: string,
   authorMessages: ParsedMessage[],
   allMessages: ParsedMessage[]
 ): boolean {
-  // Check if this author name appears in system messages as a group reference
-  // Pattern: "הוסיף את X" or "added X" where X mentions this author
-  // OR the author name appears in a system message about the group
+  // Layer 1: Check system messages for references to this name
   for (const msg of allMessages) {
     if (msg.author !== null) continue;
     const text = msg.message;
 
-    // If a system message references this name as a group subject
+    // If a system message references this name as a group subject → group name
     if (
       text.includes(`"${author}"`) ||
-      text.includes(`נושא הקבוצה`) && text.includes(author) ||
-      text.includes(`the subject`) && text.includes(author)
+      (text.includes("נושא הקבוצה") && text.includes(author)) ||
+      (text.includes("the subject") && text.includes(author))
     ) {
       return true;
     }
 
-    // If a system message says someone "added" or "removed" this author,
-    // they're a real person, not the group name
+    // If someone "added" this author → real person, not group name
     if (
-      (text.includes("הוסיף את") || text.includes("הוסיפה את") ||
-       text.includes("added")) &&
+      (text.includes("הוסיף את") ||
+        text.includes("הוסיפה את") ||
+        text.includes("added")) &&
       text.includes(author)
     ) {
       return false;
     }
   }
 
-  // If ALL their "messages" are system-like, they're probably not real
-  const allSystemLike = authorMessages.every(
-    (m) =>
+  // Layer 2: Count how many of their messages are system-like or empty
+  let systemLikeCount = 0;
+  for (const m of authorMessages) {
+    if (
       isSystemMessage(m.message) ||
       isMediaOmitted(m.message) ||
-      m.message.trim().length === 0
-  );
-  if (allSystemLike && authorMessages.length <= 5) return true;
+      m.message.trim().length === 0 ||
+      isEncryptionNotice(m.message)
+    ) {
+      systemLikeCount++;
+    }
+  }
+
+  // If ALL messages are system-like → group name regardless of count
+  if (systemLikeCount === authorMessages.length) return true;
+
+  // If >80% of messages are system-like and they have ≤15 messages → likely group name
+  if (
+    authorMessages.length <= 15 &&
+    systemLikeCount / authorMessages.length > 0.8
+  ) {
+    return true;
+  }
+
+  // Layer 3: If the first message from this "author" is the encryption notice
+  // or a system-like message, and they appear very early in the chat → suspicious
+  const firstMsg = authorMessages[0];
+  if (firstMsg) {
+    const firstMsgIndex = allMessages.indexOf(firstMsg);
+    if (
+      firstMsgIndex <= 3 &&
+      (isEncryptionNotice(firstMsg.message) ||
+        isSystemMessage(firstMsg.message))
+    ) {
+      return true;
+    }
+  }
 
   return false;
+}
+
+function isEncryptionNotice(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("end-to-end encrypted") ||
+    lower.includes("מוצפנות מקצה") ||
+    lower.includes("messages and calls") ||
+    lower.includes("הודעות ושיחות")
+  );
 }
 
 /** Filter out WhatsApp system pseudo-authors that the parser sometimes misidentifies */

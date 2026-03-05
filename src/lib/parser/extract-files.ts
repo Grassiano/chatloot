@@ -82,7 +82,7 @@ async function extractZip(
   onProgress?.({ stage: "extracting_media", current: 0, total: mediaEntries.length });
 
   let accumulatedBytes = 0;
-  const BATCH_SIZE = 20;
+  const BATCH_SIZE = 50;
 
   for (let i = 0; i < mediaEntries.length; i += BATCH_SIZE) {
     const batch = mediaEntries.slice(i, i + BATCH_SIZE);
@@ -97,15 +97,10 @@ async function extractZip(
         const mimeType = getMimeType(basename);
         const typedBlob = new Blob([rawBlob], { type: mimeType });
         const category = getMediaCategory(basename);
-        // Normalize image orientation (bakes EXIF rotation into pixels)
-        const finalBlob =
-          category === "image"
-            ? await normalizeImageOrientation(typedBlob)
-            : typedBlob;
-        const url = URL.createObjectURL(finalBlob);
+        const url = URL.createObjectURL(typedBlob);
         const mediaFile: MediaFile = {
           fileName: basename,
-          blob: finalBlob,
+          blob: typedBlob,
           url,
           type: category,
         };
@@ -159,26 +154,24 @@ async function extractFileList(
   });
 
   onProgress?.({ stage: "extracting_media", current: 0, total: mediaFiles.length });
-  for (let i = 0; i < mediaFiles.length; i++) {
-    const file = mediaFiles[i];
-    const category = getMediaCategory(file.name);
-    // Normalize image orientation (bakes EXIF rotation into pixels)
-    const finalBlob =
-      category === "image"
-        ? await normalizeImageOrientation(file)
-        : file;
-    const url = URL.createObjectURL(finalBlob);
-    media.set(file.name, {
-      fileName: file.name,
-      blob: finalBlob,
-      url,
-      type: category,
+
+  const BATCH_SIZE = 50;
+  for (let i = 0; i < mediaFiles.length; i += BATCH_SIZE) {
+    const batch = mediaFiles.slice(i, i + BATCH_SIZE);
+    const results = batch.map((file) => {
+      const category = getMediaCategory(file.name);
+      const url = URL.createObjectURL(file);
+      return [file.name, { fileName: file.name, blob: file, url, type: category }] as const;
     });
-    if (i % 20 === 0) {
-      onProgress?.({ stage: "extracting_media", current: i + 1, total: mediaFiles.length });
+    for (const [name, mediaFile] of results) {
+      media.set(name, mediaFile);
     }
+    onProgress?.({
+      stage: "extracting_media",
+      current: Math.min(i + BATCH_SIZE, mediaFiles.length),
+      total: mediaFiles.length,
+    });
   }
-  onProgress?.({ stage: "extracting_media", current: mediaFiles.length, total: mediaFiles.length });
 
   return { chatText, media };
 }
@@ -240,7 +233,7 @@ function getMediaCategory(
  * This bakes the EXIF rotation into the pixel data so every consumer
  * (img tags, canvas, face detection) sees the correct orientation.
  */
-async function normalizeImageOrientation(blob: Blob): Promise<Blob> {
+export async function normalizeImageOrientation(blob: Blob): Promise<Blob> {
   try {
     // createImageBitmap respects EXIF orientation by default
     const bitmap = await createImageBitmap(blob);

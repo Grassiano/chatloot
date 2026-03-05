@@ -26,9 +26,16 @@ export default function UploadPage() {
       setMediaCount(extracted.media.size);
 
       setState("parsing");
+      const uploadName =
+        input instanceof File
+          ? input.name
+          : input.length > 0
+            ? (input[0].webkitRelativePath?.split("/")[0] ?? input[0].name)
+            : undefined;
       const result = await parseWhatsAppChat(
         extracted.chatText,
-        extracted.media
+        extracted.media,
+        uploadName
       );
       setParsedChat(result);
       setState("done");
