@@ -47,7 +47,7 @@ export async function parseWhatsAppChat(
     }
   }
 
-  // Remove "members" with only 1-2 messages that are all system-like or media-omitted
+  // Remove "members" with only a few messages that are all system-like or media-omitted
   for (const [name, data] of memberMap) {
     if (data.messages.length > 3) continue;
     const allJunk = data.messages.every(
@@ -57,6 +57,14 @@ export async function parseWhatsAppChat(
         m.message.trim().length === 0
     );
     if (allJunk) memberMap.delete(name);
+  }
+
+  // Remove any "member" that is actually the group name leaking through
+  // (catches cases where extractGroupName() couldn't find it from system msgs)
+  for (const [name, data] of memberMap) {
+    if (isLikelyGroupName(name, data.messages, rawMessages)) {
+      memberMap.delete(name);
+    }
   }
 
   const members: ChatMember[] = Array.from(memberMap.entries()).map(
@@ -111,9 +119,71 @@ function extractGroupName(messages: ParsedMessage[]): string | null {
       /changed the subject.*?to "(.+?)"/
     );
     if (enSubject) return enSubject[1];
+
+    // Fallback: "Messages and calls are end-to-end encrypted" lines sometimes
+    // contain the group name. Also catch Hebrew encryption notice that may
+    // include the group name.
+    // Pattern: "X הוסיף את Y." or "X added Y." — extract the group context
+    const addedHe = msg.message.match(/^(.+?) הוסיפ?[הא]? את .+/);
+    if (addedHe) continue; // these are person names, not group names
+
+    // Some exports have a first system message that IS the group name or
+    // "Group name: <name>" — catch quoted group names in system messages
+    const quotedName = msg.message.match(/^"(.+?)"$/);
+    if (quotedName) return quotedName[1];
   }
 
   return null;
+}
+
+/**
+ * Detect if an "author" is actually the group name that leaked through.
+ * Heuristic: if ALL their messages are system-like or very short (≤2 chars),
+ * and their name appears in system messages referring to the group, they're
+ * likely the group name, not a real person.
+ */
+function isLikelyGroupName(
+  author: string,
+  authorMessages: ParsedMessage[],
+  allMessages: ParsedMessage[]
+): boolean {
+  // Check if this author name appears in system messages as a group reference
+  // Pattern: "הוסיף את X" or "added X" where X mentions this author
+  // OR the author name appears in a system message about the group
+  for (const msg of allMessages) {
+    if (msg.author !== null) continue;
+    const text = msg.message;
+
+    // If a system message references this name as a group subject
+    if (
+      text.includes(`"${author}"`) ||
+      text.includes(`נושא הקבוצה`) && text.includes(author) ||
+      text.includes(`the subject`) && text.includes(author)
+    ) {
+      return true;
+    }
+
+    // If a system message says someone "added" or "removed" this author,
+    // they're a real person, not the group name
+    if (
+      (text.includes("הוסיף את") || text.includes("הוסיפה את") ||
+       text.includes("added")) &&
+      text.includes(author)
+    ) {
+      return false;
+    }
+  }
+
+  // If ALL their "messages" are system-like, they're probably not real
+  const allSystemLike = authorMessages.every(
+    (m) =>
+      isSystemMessage(m.message) ||
+      isMediaOmitted(m.message) ||
+      m.message.trim().length === 0
+  );
+  if (allSystemLike && authorMessages.length <= 5) return true;
+
+  return false;
 }
 
 /** Filter out WhatsApp system pseudo-authors that the parser sometimes misidentifies */
