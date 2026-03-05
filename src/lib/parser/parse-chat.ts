@@ -26,6 +26,7 @@ export async function parseWhatsAppChat(
   for (const msg of rawMessages) {
     if (!msg.author) continue; // skip system messages
     if (isSystemAuthor(msg.author)) continue; // skip WhatsApp pseudo-authors
+    if (isSystemMessage(msg.message)) continue; // skip "X added Y" style messages
 
     const existing = memberMap.get(msg.author);
     if (existing) {
@@ -103,38 +104,91 @@ function extractGroupName(messages: ParsedMessage[]): string | null {
 
 /** Filter out WhatsApp system pseudo-authors that the parser sometimes misidentifies */
 function isSystemAuthor(author: string): boolean {
+  // Phone-number-only names (e.g. "+972 50-123-4567")
+  if (/^[\d\s+\-().]+$/.test(author)) return true;
+
   const lower = author.toLowerCase();
   const systemPatterns = [
+    // English system strings
     "end-to-end encrypted",
     "messages and calls",
-    "הודעות ושיחות",
-    "מוצפנות מקצה",
     "you were added",
-    "הוספת",
-    "הוסיף",
-    "הצטרף",
-    "left",
-    "removed",
     "changed the subject",
     "changed the group",
-    "שינה את",
-    "שינתה את",
+    "changed this group",
     "created group",
-    "יצר את הקבוצה",
-    "יצרה את הקבוצה",
     "security code changed",
-    "קוד האבטחה השתנה",
     "this message was deleted",
-    "הודעה זו נמחקה",
     "you deleted this message",
-    "מחקת הודעה זו",
     "missed voice call",
     "missed video call",
+    "disappearing messages",
+    "turned on disappearing",
+    "turned off disappearing",
+    "joined using",
+    // Hebrew system strings
+    "הודעות ושיחות",
+    "מוצפנות מקצה",
+    "הוספת",
+    "שינה את",
+    "שינתה את",
+    "יצר את הקבוצה",
+    "יצרה את הקבוצה",
+    "קוד האבטחה השתנה",
+    "הודעה זו נמחקה",
+    "מחקת הודעה זו",
     "שיחת קול שלא נענתה",
     "שיחת וידאו שלא נענתה",
+    "הודעות נעלמות",
+    "הפעיל הודעות נעלמות",
+    "הפעילה הודעות נעלמות",
+    "כיבה הודעות נעלמות",
+    "כיבתה הודעות נעלמות",
   ];
 
   return systemPatterns.some((p) => lower.includes(p));
+}
+
+/** Filter out system-generated messages even when they have a real author */
+function isSystemMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  const patterns = [
+    // English
+    "added",
+    "removed",
+    "left",
+    "joined using this group",
+    "changed the subject",
+    "changed the group",
+    "changed this group",
+    "created group",
+    "you're now an admin",
+    "is no longer an admin",
+    "turned on disappearing",
+    "turned off disappearing",
+    // Hebrew
+    "הוסיף את",
+    "הוסיפה את",
+    "הוסיף/ה את",
+    "הוסר",
+    "הוסרה",
+    "הצטרף באמצעות",
+    "הצטרפה באמצעות",
+    "עזב",
+    "עזבה",
+    "שינה את נושא",
+    "שינתה את נושא",
+    "שינה את סמל",
+    "שינתה את סמל",
+    "את/ה מנהל/ת עכשיו",
+    "כבר לא מנהל",
+    "הפעיל הודעות נעלמות",
+    "הפעילה הודעות נעלמות",
+    "כיבה הודעות נעלמות",
+    "כיבתה הודעות נעלמות",
+  ];
+
+  return patterns.some((p) => lower.includes(p));
 }
 
 export function isMediaMessage(message: string): boolean {

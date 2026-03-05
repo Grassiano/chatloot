@@ -4,7 +4,7 @@ import { useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence, type PanInfo } from "framer-motion";
 import type { MemberProfile } from "@/lib/wizard/types";
 import type { ParsedChat } from "@/lib/parser/types";
-import { PhotoGallery } from "./photo-gallery";
+import { PhotoMatcher } from "./photo-matcher";
 
 interface MemberCardsProps {
   profiles: MemberProfile[];
@@ -17,6 +17,8 @@ interface MemberCardsProps {
 
 const SWIPE_THRESHOLD = 80;
 
+type SubPhase = "matching" | "review";
+
 export function MemberCards({
   profiles,
   chat,
@@ -25,9 +27,16 @@ export function MemberCards({
   onTagPhoto,
   onComplete,
 }: MemberCardsProps) {
+  // Determine if we have images to match
+  const hasImages = Array.from(chat.media.values()).some(
+    (f) => f.type === "image"
+  );
+
+  const [subPhase, setSubPhase] = useState<SubPhase>(
+    hasImages ? "matching" : "review"
+  );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
-  const [showGallery, setShowGallery] = useState(false);
 
   // Only show non-merged profiles
   const activeProfiles = profiles.filter((p) => !p.mergedInto);
@@ -52,15 +61,37 @@ export function MemberCards({
   const handleDragEnd = useCallback(
     (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
       if (info.offset.x < -SWIPE_THRESHOLD) {
-        // Swiped left → next (RTL: so this goes forward)
         goPrev();
       } else if (info.offset.x > SWIPE_THRESHOLD) {
-        // Swiped right → prev (RTL)
         goNext();
       }
     },
     [goNext, goPrev]
   );
+
+  const handleMatcherDone = useCallback(() => {
+    setSubPhase("review");
+  }, []);
+
+  const handleDeviceUpload = useCallback(
+    (displayName: string, file: File) => {
+      const url = URL.createObjectURL(file);
+      onSetPhoto(displayName, url, file);
+    },
+    [onSetPhoto]
+  );
+
+  // Photo Matcher sub-phase
+  if (subPhase === "matching") {
+    return (
+      <PhotoMatcher
+        media={chat.media}
+        profiles={activeProfiles}
+        onAssign={onTagPhoto}
+        onDone={handleMatcherDone}
+      />
+    );
+  }
 
   if (!current) return null;
 
@@ -116,9 +147,11 @@ export function MemberCards({
             >
               <ProfileCard
                 profile={current}
-                onOpenGallery={() => setShowGallery(true)}
                 onSetNickname={(nick) =>
                   onSetNickname(current.displayName, nick)
+                }
+                onDeviceUpload={(file) =>
+                  handleDeviceUpload(current.displayName, file)
                 }
               />
             </motion.div>
@@ -161,18 +194,6 @@ export function MemberCards({
           </button>
         </div>
       </div>
-
-      {/* Photo Gallery overlay */}
-      {showGallery && (
-        <PhotoGallery
-          media={chat.media}
-          memberNames={activeProfiles.map((p) => p.displayName)}
-          targetMember={current.displayName}
-          onTag={onTagPhoto}
-          onUpload={(name, url, blob) => onSetPhoto(name, url, blob)}
-          onClose={() => setShowGallery(false)}
-        />
-      )}
     </motion.div>
   );
 }
@@ -180,23 +201,34 @@ export function MemberCards({
 /** Individual profile card content */
 function ProfileCard({
   profile,
-  onOpenGallery,
   onSetNickname,
+  onDeviceUpload,
 }: {
   profile: MemberProfile;
-  onOpenGallery: () => void;
   onSetNickname: (nickname: string) => void;
+  onDeviceUpload: (file: File) => void;
 }) {
   const [editingNick, setEditingNick] = useState(false);
   const nickRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const summary = profile.aiSummary ?? profile.personalitySummary;
 
   return (
     <div className="flex flex-col items-center gap-4">
-      {/* Avatar */}
+      {/* Avatar — tap to upload from device */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onDeviceUpload(file);
+        }}
+        className="hidden"
+      />
       <button
-        onClick={onOpenGallery}
+        onClick={() => fileRef.current?.click()}
         className="group relative flex h-20 w-20 items-center justify-center rounded-full bg-[#DFE5E7] transition-transform hover:scale-105"
       >
         {profile.photoUrl ? (
@@ -299,10 +331,10 @@ function ProfileCard({
       {/* Action buttons */}
       <div className="flex gap-2">
         <button
-          onClick={onOpenGallery}
+          onClick={() => fileRef.current?.click()}
           className="rounded-full bg-[#F0F2F5] px-3 py-1.5 text-[12px] font-medium text-[#111B21] transition-colors hover:bg-[#E4E6EB]"
         >
-          תייגו תמונות
+          תמונת פרופיל
         </button>
         <button
           onClick={() => {

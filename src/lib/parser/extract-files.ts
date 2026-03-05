@@ -1,5 +1,5 @@
 import JSZip from "jszip";
-import type { MediaFile } from "./types";
+import type { MediaFile, ExtractionProgress } from "./types";
 
 const MAX_EXTRACTED_BYTES = 5 * 1024 * 1024 * 1024; // 5 GB
 const MAX_FILE_COUNT = 50_000;
@@ -16,36 +16,43 @@ export interface ExtractedUpload {
  * and extracts the chat text + media files.
  */
 export async function extractUpload(
-  files: File | FileList
+  files: File | FileList,
+  onProgress?: (progress: ExtractionProgress) => void
 ): Promise<ExtractedUpload> {
   // Single file
   if (files instanceof File) {
     if (files.name.endsWith(".zip")) {
-      return extractZip(files);
+      return extractZip(files, onProgress);
     }
     if (files.name.endsWith(".txt")) {
       if (files.size > MAX_TXT_BYTES) throw new Error("file_too_large");
+      onProgress?.({ stage: "parsing_messages", current: 0, total: 0 });
       return { chatText: await files.text(), media: new Map() };
     }
     throw new Error("unsupported_file_type");
   }
 
   // FileList (folder upload or multi-select)
-  return extractFileList(files);
+  return extractFileList(files, onProgress);
 }
 
 /** Extract a WhatsApp export ZIP file */
-async function extractZip(file: File): Promise<ExtractedUpload> {
+async function extractZip(
+  file: File,
+  onProgress?: (progress: ExtractionProgress) => void
+): Promise<ExtractedUpload> {
+  onProgress?.({ stage: "reading_zip", current: 0, total: 0 });
   const zip = await JSZip.loadAsync(file);
   const media = new Map<string, MediaFile>();
-  let chatText = "";
 
-  // Find the chat .txt file — could be _chat.txt, chat.txt, or any .txt
   const entries = Object.entries(zip.files);
 
   if (entries.length > MAX_FILE_COUNT) {
     throw new Error("too_many_files");
   }
+
+  // Find the chat .txt file
+  onProgress?.({ stage: "finding_chat", current: 0, total: entries.length });
 
   const txtEntry = entries.find(([name]) => {
     const basename = name.split("/").pop()?.toLowerCase() ?? "";
@@ -60,51 +67,69 @@ async function extractZip(file: File): Promise<ExtractedUpload> {
     throw new Error("no_chat_file");
   }
 
-  chatText = await txtEntry[1].async("text");
+  onProgress?.({ stage: "parsing_messages", current: 0, total: 0 });
+  const chatText = await txtEntry[1].async("text");
 
-  // Extract all media files
+  // Extract media in batches for progress updates
+  const mediaEntries = entries.filter(([name, entry]) => {
+    if (entry.dir) return false;
+    const basename = name.split("/").pop()?.toLowerCase() ?? "";
+    if (basename.endsWith(".txt")) return false;
+    if (basename.startsWith(".") || basename.startsWith("__")) return false;
+    return isMediaFile(basename);
+  });
+
+  onProgress?.({ stage: "extracting_media", current: 0, total: mediaEntries.length });
+
   let accumulatedBytes = 0;
+  const BATCH_SIZE = 20;
 
-  const mediaPromises = entries
-    .filter(([name, entry]) => {
-      if (entry.dir) return false;
-      const basename = name.split("/").pop()?.toLowerCase() ?? "";
-      if (basename.endsWith(".txt")) return false;
-      if (basename.startsWith(".") || basename.startsWith("__")) return false;
-      return isMediaFile(basename);
-    })
-    .map(async ([name, entry]) => {
-      const basename = name.split("/").pop() ?? name;
-      const blob = await entry.async("blob");
-      accumulatedBytes += blob.size;
-      if (accumulatedBytes > MAX_EXTRACTED_BYTES) {
-        throw new Error("zip_too_large");
-      }
-      const mimeType = getMimeType(basename);
-      const typedBlob = new Blob([blob], { type: mimeType });
-      const url = URL.createObjectURL(typedBlob);
-      const mediaFile: MediaFile = {
-        fileName: basename,
-        blob: typedBlob,
-        url,
-        type: getMediaCategory(basename),
-      };
-      return [basename, mediaFile] as const;
+  for (let i = 0; i < mediaEntries.length; i += BATCH_SIZE) {
+    const batch = mediaEntries.slice(i, i + BATCH_SIZE);
+    const results = await Promise.all(
+      batch.map(async ([name, entry]) => {
+        const basename = name.split("/").pop() ?? name;
+        const blob = await entry.async("blob");
+        accumulatedBytes += blob.size;
+        if (accumulatedBytes > MAX_EXTRACTED_BYTES) {
+          throw new Error("zip_too_large");
+        }
+        const mimeType = getMimeType(basename);
+        const typedBlob = new Blob([blob], { type: mimeType });
+        const url = URL.createObjectURL(typedBlob);
+        const mediaFile: MediaFile = {
+          fileName: basename,
+          blob: typedBlob,
+          url,
+          type: getMediaCategory(basename),
+        };
+        return [basename, mediaFile] as const;
+      })
+    );
+
+    for (const [name, mediaFile] of results) {
+      media.set(name, mediaFile);
+    }
+
+    onProgress?.({
+      stage: "extracting_media",
+      current: Math.min(i + BATCH_SIZE, mediaEntries.length),
+      total: mediaEntries.length,
     });
-
-  const resolved = await Promise.all(mediaPromises);
-  for (const [name, mediaFile] of resolved) {
-    media.set(name, mediaFile);
   }
 
   return { chatText, media };
 }
 
 /** Extract from a folder upload (FileList from webkitdirectory) */
-async function extractFileList(files: FileList): Promise<ExtractedUpload> {
+async function extractFileList(
+  files: FileList,
+  onProgress?: (progress: ExtractionProgress) => void
+): Promise<ExtractedUpload> {
   const media = new Map<string, MediaFile>();
   let chatText = "";
 
+  onProgress?.({ stage: "finding_chat", current: 0, total: files.length });
   const fileArray = Array.from(files);
 
   // Find the .txt chat file
@@ -117,6 +142,7 @@ async function extractFileList(files: FileList): Promise<ExtractedUpload> {
     throw new Error("no_chat_file");
   }
 
+  onProgress?.({ stage: "parsing_messages", current: 0, total: 0 });
   chatText = await txtFile.text();
 
   // Process media files
@@ -126,7 +152,9 @@ async function extractFileList(files: FileList): Promise<ExtractedUpload> {
     return isMediaFile(name);
   });
 
-  for (const file of mediaFiles) {
+  onProgress?.({ stage: "extracting_media", current: 0, total: mediaFiles.length });
+  for (let i = 0; i < mediaFiles.length; i++) {
+    const file = mediaFiles[i];
     const url = URL.createObjectURL(file);
     media.set(file.name, {
       fileName: file.name,
@@ -134,7 +162,11 @@ async function extractFileList(files: FileList): Promise<ExtractedUpload> {
       url,
       type: getMediaCategory(file.name),
     });
+    if (i % 20 === 0) {
+      onProgress?.({ stage: "extracting_media", current: i + 1, total: mediaFiles.length });
+    }
   }
+  onProgress?.({ stage: "extracting_media", current: mediaFiles.length, total: mediaFiles.length });
 
   return { chatText, media };
 }

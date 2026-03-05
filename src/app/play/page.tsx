@@ -3,8 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useGame } from "@/hooks/use-game";
-import type { ParsedChat } from "@/lib/parser/types";
-import type { MediaFile } from "@/lib/parser/types";
+import type { ParsedChat, MediaFile, ExtractionProgress } from "@/lib/parser/types";
 import type { WhoSaidItQuestion } from "@/lib/game/types";
 import type { AnalysisResult } from "@/lib/ai/analyze-chat";
 import { extractUpload, revokeMediaUrls } from "@/lib/parser/extract-files";
@@ -15,9 +14,10 @@ import { LobbyStep } from "@/components/game/lobby-step";
 import { GameRound } from "@/components/game/game-round";
 import { FinalResults } from "@/components/game/final-results";
 import { GmSetup } from "@/components/wizard/gm-setup";
+import { ModeSelect } from "@/components/game/mode-select";
 import Link from "next/link";
 
-type FlowPhase = "upload" | "analyzing" | "wizard" | "game";
+type FlowPhase = "upload" | "analyzing" | "wizard" | "mode-select" | "game";
 
 const LOADING_MESSAGES = [
   "קורא את כל ההודעות...",
@@ -37,7 +37,10 @@ export default function PlayPage() {
   const [memberPhotos, setMemberPhotos] = useState<Map<string, string>>(
     new Map()
   );
+  const [extractionProgress, setExtractionProgress] =
+    useState<ExtractionProgress | null>(null);
   const mediaRef = useRef<Map<string, MediaFile> | null>(null);
+  const wizardQuestionsRef = useRef<WhoSaidItQuestion[]>([]);
 
   // Cleanup media URLs on unmount
   useEffect(() => {
@@ -57,7 +60,7 @@ export default function PlayPage() {
 
   async function handleUpload(input: File | FileList) {
     if (mediaRef.current) revokeMediaUrls(mediaRef.current);
-    const extracted = await extractUpload(input);
+    const extracted = await extractUpload(input, setExtractionProgress);
     mediaRef.current = extracted.media;
     const parsed = await parseWhatsAppChat(
       extracted.chatText,
@@ -90,19 +93,26 @@ export default function PlayPage() {
     (questions: WhoSaidItQuestion[], photos: Map<string, string>) => {
       if (!chat) return;
       setMemberPhotos(photos);
-
-      if (questions.length > 0) {
-        game.initGame(chat, undefined, questions);
-        setIsAiEnhanced(true);
-      } else {
-        game.initGame(chat);
-        setIsAiEnhanced(false);
-      }
-
-      setFlowPhase("game");
+      wizardQuestionsRef.current = questions;
+      setFlowPhase("mode-select");
     },
-    [chat, game]
+    [chat]
   );
+
+  const handleModeSelect = useCallback(() => {
+    if (!chat) return;
+    const questions = wizardQuestionsRef.current;
+
+    if (questions.length > 0) {
+      game.initGame(chat, undefined, questions);
+      setIsAiEnhanced(true);
+    } else {
+      game.initGame(chat);
+      setIsAiEnhanced(false);
+    }
+
+    setFlowPhase("game");
+  }, [chat, game]);
 
   const { phase } = game.state;
   const inGame = flowPhase === "game";
@@ -137,6 +147,7 @@ export default function PlayPage() {
             {flowPhase === "upload" && "העלאת צ׳אט"}
             {flowPhase === "analyzing" && "מנתח את הצ׳אט..."}
             {flowPhase === "wizard" && "הכנת המשחק"}
+            {flowPhase === "mode-select" && "בחירת מצב משחק"}
             {inGame && phase === "lobby" &&
               `${game.state.players.length} שחקנים מחוברים`}
             {inGame &&
@@ -156,7 +167,11 @@ export default function PlayPage() {
       >
         <AnimatePresence mode="wait">
           {flowPhase === "upload" && (
-            <UploadStep key="upload" onUpload={handleUpload} />
+            <UploadStep
+              key="upload"
+              onUpload={handleUpload}
+              extractionProgress={extractionProgress}
+            />
           )}
 
           {flowPhase === "analyzing" && (
@@ -208,6 +223,10 @@ export default function PlayPage() {
               analysis={analysis}
               onComplete={handleWizardComplete}
             />
+          )}
+
+          {flowPhase === "mode-select" && (
+            <ModeSelect key="mode-select" onSelect={handleModeSelect} />
           )}
 
           {inGame && phase === "lobby" && chat && (

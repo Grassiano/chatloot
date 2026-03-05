@@ -31,15 +31,11 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
     new Set()
   );
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [currentPlayerIdx, setCurrentPlayerIdx] = useState(0);
-  const [showHandoff, setShowHandoff] = useState(false);
 
   // Reset state on new round
   useEffect(() => {
     setAnsweredPlayers(new Set());
     setSelectedAnswer(null);
-    setCurrentPlayerIdx(0);
-    setShowHandoff(false);
   }, [currentRound]);
 
   // Auto-advance from question phase to answering after dramatic pause
@@ -54,7 +50,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
     }
   }, [phase, showQuestion, timerReset, timerStart]);
 
-  const currentPlayer = currentQuestion ? players[currentPlayerIdx] : undefined;
+  const currentPlayer = currentQuestion ? players[0] : undefined;
   const allAnswered = answeredPlayers.size >= players.length;
 
   // Auto-reveal when all players have answered — with cleanup
@@ -80,15 +76,8 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
 
     setTimeout(() => {
       setSelectedAnswer(null);
-      if (currentPlayerIdx < players.length - 1) {
-        // More players left — show handoff screen before advancing
-        setShowHandoff(true);
-      }
-      // If last player, allAnswered effect handles the reveal
     }, 600);
   }
-
-  const nextPlayerForHandoff = players[currentPlayerIdx + 1];
 
   return (
     <div className="flex min-h-[calc(100vh-52px)] flex-col bg-[#0D1117] text-white">
@@ -143,8 +132,8 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
             >
               <MessageBubble text={currentQuestion.messageText} />
 
-              {/* Current player indicator */}
-              {currentPlayer && !allAnswered && (
+              {/* Current player indicator (multi-player only) */}
+              {players.length > 1 && currentPlayer && !allAnswered && (
                 <motion.div
                   key={currentPlayer.id}
                   initial={{ opacity: 0, y: 5 }}
@@ -365,47 +354,6 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
         </AnimatePresence>
       </div>
 
-      {/* Pass-and-play handoff overlay */}
-      <AnimatePresence>
-        {showHandoff && nextPlayerForHandoff && (
-          <motion.div
-            key="handoff"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0D1117]"
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -16 }}
-              transition={{ delay: 0.1, duration: 0.3 }}
-              className="flex flex-col items-center gap-6 px-8 text-center"
-            >
-              <p className="text-[18px] font-medium text-[#8B949E]">
-                העבירו את הטלפון ל-
-              </p>
-              <p
-                className="text-[32px] font-black"
-                style={{ color: nextPlayerForHandoff.color }}
-              >
-                {nextPlayerForHandoff.name}
-              </p>
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  setCurrentPlayerIdx((prev) => prev + 1);
-                  setShowHandoff(false);
-                }}
-                className="mt-4 rounded-2xl bg-[#E2A829] px-10 py-4 text-[17px] font-bold text-[#0D1117] transition-transform hover:scale-105 active:scale-95"
-              >
-                אני מוכן/ה
-              </motion.button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

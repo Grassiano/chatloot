@@ -51,6 +51,18 @@ export interface MediaFile {
   type: "image" | "video" | "voice" | "sticker" | "document";
 }
 
+export type ExtractionStage =
+  | "reading_zip"
+  | "finding_chat"
+  | "parsing_messages"
+  | "extracting_media";
+
+export interface ExtractionProgress {
+  stage: ExtractionStage;
+  current: number;
+  total: number;
+}
+
 export interface ParsedChat {
   messages: ParsedMessage[];
   members: ChatMember[];

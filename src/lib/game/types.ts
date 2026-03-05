@@ -77,6 +77,24 @@ export const MODE_LABELS: Record<GameMode, string> = {
   hot_seat: "הכיסא החם",
 };
 
+export const MODE_EMOJIS: Record<GameMode, string> = {
+  who_said_it: "🗣️",
+  chat_awards: "🏆",
+  time_machine: "⏰",
+  caption_wars: "✍️",
+  hot_seat: "🔥",
+};
+
+export const MODE_DESCRIPTIONS: Record<GameMode, string> = {
+  who_said_it: "נחשו מי כתב את ההודעה",
+  chat_awards: "הצביעו על פרסים מביכים לחברי הקבוצה",
+  time_machine: "נסעו אחורה בזמן — מתי זה נכתב?",
+  caption_wars: "כתבו כיתוב מצחיק לתמונות מהצ׳אט",
+  hot_seat: "שאלות אישיות על חברי הקבוצה",
+};
+
+export const AVAILABLE_MODES: GameMode[] = ["who_said_it"];
+
 export const PLAYER_COLORS = [
   "#E2A829",
   "#00A884",

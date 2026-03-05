@@ -28,7 +28,7 @@ export function LobbyStep({ game, memberNames }: LobbyStepProps) {
     }
   }
 
-  const canStart = players.length >= 2;
+  const canStart = players.length >= 1;
 
   return (
     <motion.div
@@ -152,11 +152,6 @@ export function LobbyStep({ game, memberNames }: LobbyStepProps) {
               יאללה, מתחילים! 🎮
             </button>
           </motion.div>
-        )}
-        {players.length === 1 && (
-          <p className="mt-2 text-center text-[13px] text-[#8B949E]">
-            דרושים לפחות 2 שחקנים
-          </p>
         )}
       </div>
     </motion.div>

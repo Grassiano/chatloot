@@ -3,11 +3,28 @@
 import { useState, useRef, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
+import type { ExtractionProgress, ExtractionStage } from "@/lib/parser/types";
+
+const STAGE_LABELS: Record<ExtractionStage, string> = {
+  reading_zip: "קורא את הקובץ...",
+  finding_chat: "מחפש את הצ׳אט...",
+  parsing_messages: "מנתח הודעות...",
+  extracting_media: "מחלץ קבצי מדיה...",
+};
+
+const STAGE_ORDER: ExtractionStage[] = [
+  "reading_zip",
+  "finding_chat",
+  "parsing_messages",
+  "extracting_media",
+];
+
 interface UploadStepProps {
   onUpload: (input: File | FileList) => Promise<void>;
+  extractionProgress?: ExtractionProgress | null;
 }
 
-export function UploadStep({ onUpload }: UploadStepProps) {
+export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [fileName, setFileName] = useState("");
   const [error, setError] = useState("");
@@ -156,19 +173,68 @@ export function UploadStep({ onUpload }: UploadStepProps) {
 
         {isLoading ? (
           <div className="flex justify-start">
-            <div className="rounded-lg rounded-tr-none bg-[#DCF8C6] p-4 shadow-sm">
-              <div className="flex items-center gap-2">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                  className="h-5 w-5 rounded-full border-2 border-[#00A884] border-t-transparent"
-                />
-                <p className="text-[14px] font-medium text-[#111B21]">
-                  מכין את המשחק...
-                </p>
+            <div className="w-full max-w-sm rounded-lg rounded-tr-none bg-[#DCF8C6] p-4 shadow-sm">
+              {/* Stage label */}
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={extractionProgress?.stage ?? "init"}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="mb-3 text-[14px] font-medium text-[#111B21]"
+                >
+                  {extractionProgress
+                    ? STAGE_LABELS[extractionProgress.stage]
+                    : "מכין את המשחק..."}
+                </motion.p>
+              </AnimatePresence>
+
+              {/* Progress bar — 4 segments */}
+              <div className="mb-2 flex gap-1">
+                {STAGE_ORDER.map((stage, i) => {
+                  const currentIdx = extractionProgress
+                    ? STAGE_ORDER.indexOf(extractionProgress.stage)
+                    : -1;
+                  const isCompleted = i < currentIdx;
+                  const isCurrent = i === currentIdx;
+
+                  return (
+                    <div
+                      key={stage}
+                      className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-[#00A884]/20"
+                    >
+                      {isCompleted && (
+                        <div className="absolute inset-0 rounded-full bg-[#00A884]" />
+                      )}
+                      {isCurrent && (
+                        <motion.div
+                          className="absolute inset-y-0 left-0 rounded-full bg-[#00A884]"
+                          initial={{ width: "10%" }}
+                          animate={{ width: extractionProgress?.total
+                            ? `${Math.max(10, (extractionProgress.current / extractionProgress.total) * 100)}%`
+                            : ["10%", "60%", "90%"] }}
+                          transition={extractionProgress?.total
+                            ? { duration: 0.3 }
+                            : { duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              {fileName && (
-                <p className="mt-2 text-[12px] text-[#667781]" dir="auto">
+
+              {/* File counter during media extraction */}
+              {extractionProgress?.stage === "extracting_media" &&
+                extractionProgress.total > 0 && (
+                  <p className="text-[12px] tabular-nums text-[#667781]">
+                    {extractionProgress.current.toLocaleString()} /{" "}
+                    {extractionProgress.total.toLocaleString()} קבצים
+                  </p>
+                )}
+
+              {/* File name */}
+              {fileName && !extractionProgress && (
+                <p className="text-[12px] text-[#667781]" dir="auto">
                   {fileName}
                 </p>
               )}
