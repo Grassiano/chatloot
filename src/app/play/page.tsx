@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useGame } from "@/hooks/use-game";
 import type { ParsedChat } from "@/lib/parser/types";
 import type { MediaFile } from "@/lib/parser/types";
+import type { WhoSaidItQuestion } from "@/lib/game/types";
+import type { AnalysisResult } from "@/lib/ai/analyze-chat";
 import { extractUpload, revokeMediaUrls } from "@/lib/parser/extract-files";
 import { parseWhatsAppChat } from "@/lib/parser/parse-chat";
 import { analyzeChat } from "@/lib/ai/analyze-chat";
@@ -12,22 +14,46 @@ import { UploadStep } from "@/components/game/upload-step";
 import { LobbyStep } from "@/components/game/lobby-step";
 import { GameRound } from "@/components/game/game-round";
 import { FinalResults } from "@/components/game/final-results";
+import { GmSetup } from "@/components/wizard/gm-setup";
 import Link from "next/link";
 
-type AnalysisState = "idle" | "analyzing" | "done" | "failed" | "skipped";
+type FlowPhase = "upload" | "analyzing" | "wizard" | "game";
+
+const LOADING_MESSAGES = [
+  "קורא את כל ההודעות...",
+  "מחפש את הרגעים המביכים...",
+  "לומד מי כותב מה...",
+  "בוחר את השאלות הכי טובות...",
+  "כותב פרופיל לכל חבר...",
+];
 
 export default function PlayPage() {
   const game = useGame();
+  const [flowPhase, setFlowPhase] = useState<FlowPhase>("upload");
   const [chat, setChat] = useState<ParsedChat | null>(null);
-  const [analysisState, setAnalysisState] = useState<AnalysisState>("idle");
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isAiEnhanced, setIsAiEnhanced] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState(0);
+  const [memberPhotos, setMemberPhotos] = useState<Map<string, string>>(
+    new Map()
+  );
   const mediaRef = useRef<Map<string, MediaFile> | null>(null);
 
+  // Cleanup media URLs on unmount
   useEffect(() => {
     return () => {
       if (mediaRef.current) revokeMediaUrls(mediaRef.current);
     };
   }, []);
+
+  // Rotate loading messages
+  useEffect(() => {
+    if (flowPhase !== "analyzing") return;
+    const timer = setInterval(() => {
+      setLoadingMsg((i) => (i + 1) % LOADING_MESSAGES.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [flowPhase]);
 
   async function handleUpload(input: File | FileList) {
     if (mediaRef.current) revokeMediaUrls(mediaRef.current);
@@ -38,48 +64,56 @@ export default function PlayPage() {
       extracted.media
     );
     setChat(parsed);
-    setAnalysisState("analyzing");
+    setFlowPhase("analyzing");
 
-    // Run AI analysis
     try {
       const result = await analyzeChat(parsed);
-      if (result.isAiEnhanced && result.questions.length > 0) {
-        game.initGame(parsed, undefined, result.questions);
-        setIsAiEnhanced(true);
-        setAnalysisState("done");
-      } else {
-        // AI returned nothing useful — fall back to random
-        game.initGame(parsed);
-        setIsAiEnhanced(false);
-        setAnalysisState("failed");
-      }
+      setAnalysis(result);
+      setFlowPhase("wizard");
     } catch (err) {
-      // If initGame/random generation fails, let the error propagate
       if (err instanceof Error && err.message === "no_eligible_messages") {
         throw err;
       }
-      // AI failed — fall back to random
-      game.initGame(parsed);
-      setIsAiEnhanced(false);
-      setAnalysisState("failed");
+      // AI failed — still go to wizard with fallback
+      setAnalysis(null);
+      setFlowPhase("wizard");
     }
   }
 
   function handleSkipAi() {
     if (!chat) return;
-    game.initGame(chat);
-    setIsAiEnhanced(false);
-    setAnalysisState("skipped");
+    setAnalysis(null);
+    setFlowPhase("wizard");
   }
 
+  const handleWizardComplete = useCallback(
+    (questions: WhoSaidItQuestion[], photos: Map<string, string>) => {
+      if (!chat) return;
+      setMemberPhotos(photos);
+
+      if (questions.length > 0) {
+        game.initGame(chat, undefined, questions);
+        setIsAiEnhanced(true);
+      } else {
+        game.initGame(chat);
+        setIsAiEnhanced(false);
+      }
+
+      setFlowPhase("game");
+    },
+    [chat, game]
+  );
+
   const { phase } = game.state;
-  const showAnalyzing = phase === "setup" && analysisState === "analyzing";
+  const inGame = flowPhase === "game";
 
   return (
     <div
       className="flex min-h-screen flex-col"
       data-mode={
-        phase === "setup" || phase === "lobby" ? undefined : "who-said-it"
+        inGame && !["setup", "lobby"].includes(phase)
+          ? "who-said-it"
+          : undefined
       }
     >
       {/* Header */}
@@ -100,35 +134,32 @@ export default function PlayPage() {
         <div className="flex-1">
           <h1 className="text-[15px] font-medium">ChatLoot</h1>
           <p className="text-[11px] opacity-75">
-            {phase === "setup" && !showAnalyzing && "העלאת צ׳אט"}
-            {showAnalyzing && "מנתח את הצ׳אט..."}
-            {phase === "lobby" &&
+            {flowPhase === "upload" && "העלאת צ׳אט"}
+            {flowPhase === "analyzing" && "מנתח את הצ׳אט..."}
+            {flowPhase === "wizard" && "הכנת המשחק"}
+            {inGame && phase === "lobby" &&
               `${game.state.players.length} שחקנים מחוברים`}
-            {!["setup", "lobby"].includes(phase) &&
+            {inGame &&
+              !["setup", "lobby"].includes(phase) &&
               `סיבוב ${game.state.currentRound} מתוך ${game.state.settings.totalRounds}`}
           </p>
         </div>
-        {phase !== "setup" && phase !== "lobby" && phase !== "final" && (
-          <div className="text-[13px] font-bold tabular-nums">מי אמר?</div>
+        {isAiEnhanced && inGame && phase !== "final" && (
+          <div className="rounded-full bg-[#E2A829]/20 px-2 py-0.5 text-[10px] font-bold text-[#E2A829]">
+            AI
+          </div>
         )}
-        {isAiEnhanced &&
-          phase !== "setup" &&
-          phase !== "final" && (
-            <div className="rounded-full bg-[#E2A829]/20 px-2 py-0.5 text-[10px] font-bold text-[#E2A829]">
-              AI
-            </div>
-          )}
       </header>
 
       <main
-        className={`flex-1 ${phase === "setup" && !showAnalyzing ? "chat-wallpaper" : ""}`}
+        className={`flex-1 ${flowPhase === "upload" ? "chat-wallpaper" : ""}`}
       >
         <AnimatePresence mode="wait">
-          {phase === "setup" && !showAnalyzing && (
+          {flowPhase === "upload" && (
             <UploadStep key="upload" onUpload={handleUpload} />
           )}
 
-          {showAnalyzing && (
+          {flowPhase === "analyzing" && (
             <motion.div
               key="analyzing"
               initial={{ opacity: 0 }}
@@ -150,9 +181,17 @@ export default function PlayPage() {
               <p className="mb-2 text-[18px] font-bold text-white">
                 הבינה המלאכותית קוראת את הצ׳אט...
               </p>
-              <p className="mb-8 text-[14px] text-[#8B949E]">
-                מחפשת את ההודעות הכי שוות למשחק
-              </p>
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={loadingMsg}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mb-8 text-[14px] text-[#8B949E]"
+                >
+                  {LOADING_MESSAGES[loadingMsg]}
+                </motion.p>
+              </AnimatePresence>
               <button
                 onClick={handleSkipAi}
                 className="rounded-lg bg-[#21262D] px-4 py-2 text-[13px] text-[#8B949E] transition-colors hover:bg-[#30363D] hover:text-white"
@@ -162,7 +201,16 @@ export default function PlayPage() {
             </motion.div>
           )}
 
-          {phase === "lobby" && chat && (
+          {flowPhase === "wizard" && chat && (
+            <GmSetup
+              key="wizard"
+              chat={chat}
+              analysis={analysis}
+              onComplete={handleWizardComplete}
+            />
+          )}
+
+          {inGame && phase === "lobby" && chat && (
             <LobbyStep
               key="lobby"
               game={game}
@@ -170,14 +218,18 @@ export default function PlayPage() {
             />
           )}
 
-          {["question", "answering", "reveal", "scores"].includes(phase) && (
-            <GameRound
-              key={`round-${game.state.currentRound}`}
-              game={game}
-            />
-          )}
+          {inGame &&
+            ["question", "answering", "reveal", "scores"].includes(phase) && (
+              <GameRound
+                key={`round-${game.state.currentRound}`}
+                game={game}
+                memberPhotos={memberPhotos}
+              />
+            )}
 
-          {phase === "final" && <FinalResults key="final" game={game} />}
+          {inGame && phase === "final" && (
+            <FinalResults key="final" game={game} memberPhotos={memberPhotos} />
+          )}
         </AnimatePresence>
       </main>
     </div>

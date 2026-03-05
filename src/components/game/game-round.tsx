@@ -7,9 +7,10 @@ import { useTimer } from "@/hooks/use-timer";
 
 interface GameRoundProps {
   game: ReturnType<typeof useGame>;
+  memberPhotos?: Map<string, string>;
 }
 
-export function GameRound({ game }: GameRoundProps) {
+export function GameRound({ game, memberPhotos }: GameRoundProps) {
   const { state } = game;
   const { phase, currentQuestion, currentRound, settings, players } = state;
 
@@ -164,6 +165,7 @@ export function GameRound({ game }: GameRoundProps) {
               <div className="mt-4 grid grid-cols-2 gap-2">
                 {currentQuestion.options.map((option) => {
                   const isSelected = selectedAnswer === option;
+                  const photoUrl = memberPhotos?.get(option);
                   return (
                     <motion.button
                       key={option}
@@ -174,12 +176,19 @@ export function GameRound({ game }: GameRoundProps) {
                         answeredPlayers.has(currentPlayer.id) ||
                         allAnswered
                       }
-                      className={`rounded-xl px-4 py-4 text-[15px] font-medium transition-all ${
+                      className={`flex items-center justify-center gap-2 rounded-xl px-4 py-4 text-[15px] font-medium transition-all ${
                         isSelected
                           ? "bg-[#E2A829] text-[#0D1117]"
                           : "bg-[#161B22] text-white hover:bg-[#21262D]"
                       } disabled:opacity-40`}
                     >
+                      {photoUrl && (
+                        <img
+                          src={photoUrl}
+                          alt=""
+                          className="h-7 w-7 rounded-full object-cover"
+                        />
+                      )}
                       {option}
                     </motion.button>
                   );
@@ -230,9 +239,18 @@ export function GameRound({ game }: GameRoundProps) {
                 <p className="mb-2 text-[14px] text-[#8B949E]">
                   התשובה היא...
                 </p>
-                <p className="text-[28px] font-black text-[#E2A829]">
-                  {currentQuestion.correctAuthor}
-                </p>
+                <div className="flex items-center justify-center gap-3">
+                  {memberPhotos?.get(currentQuestion.correctAuthor) && (
+                    <img
+                      src={memberPhotos.get(currentQuestion.correctAuthor)}
+                      alt=""
+                      className="h-12 w-12 rounded-full object-cover"
+                    />
+                  )}
+                  <p className="text-[28px] font-black text-[#E2A829]">
+                    {currentQuestion.correctAuthor}
+                  </p>
+                </div>
               </motion.div>
 
               {/* Per-player results */}

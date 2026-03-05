@@ -1,0 +1,373 @@
+"use client";
+
+import { useState, useCallback, useRef } from "react";
+import { motion, AnimatePresence, type PanInfo } from "framer-motion";
+import type { MemberProfile } from "@/lib/wizard/types";
+import type { ParsedChat } from "@/lib/parser/types";
+import { PhotoGallery } from "./photo-gallery";
+
+interface MemberCardsProps {
+  profiles: MemberProfile[];
+  chat: ParsedChat;
+  onSetNickname: (displayName: string, nickname: string) => void;
+  onSetPhoto: (displayName: string, url: string, blob: Blob | null) => void;
+  onTagPhoto: (displayName: string, photoUrl: string) => void;
+  onComplete: () => void;
+}
+
+const SWIPE_THRESHOLD = 80;
+
+export function MemberCards({
+  profiles,
+  chat,
+  onSetNickname,
+  onSetPhoto,
+  onTagPhoto,
+  onComplete,
+}: MemberCardsProps) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [direction, setDirection] = useState(0);
+  const [showGallery, setShowGallery] = useState(false);
+
+  // Only show non-merged profiles
+  const activeProfiles = profiles.filter((p) => !p.mergedInto);
+  const current = activeProfiles[currentIndex];
+
+  const goNext = useCallback(() => {
+    if (currentIndex < activeProfiles.length - 1) {
+      setDirection(1);
+      setCurrentIndex((i) => i + 1);
+    } else {
+      onComplete();
+    }
+  }, [currentIndex, activeProfiles.length, onComplete]);
+
+  const goPrev = useCallback(() => {
+    if (currentIndex > 0) {
+      setDirection(-1);
+      setCurrentIndex((i) => i - 1);
+    }
+  }, [currentIndex]);
+
+  const handleDragEnd = useCallback(
+    (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      if (info.offset.x < -SWIPE_THRESHOLD) {
+        // Swiped left → next (RTL: so this goes forward)
+        goPrev();
+      } else if (info.offset.x > SWIPE_THRESHOLD) {
+        // Swiped right → prev (RTL)
+        goNext();
+      }
+    },
+    [goNext, goPrev]
+  );
+
+  if (!current) return null;
+
+  const slideVariants = {
+    enter: (d: number) => ({
+      x: d > 0 ? 300 : -300,
+      opacity: 0,
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+      transition: { type: "spring" as const, stiffness: 300, damping: 30 },
+    },
+    exit: (d: number) => ({
+      x: d > 0 ? -300 : 300,
+      opacity: 0,
+    }),
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="flex min-h-[calc(100vh-52px)] flex-col px-3 py-4"
+    >
+      <div className="mx-auto w-full max-w-lg flex-1">
+        {/* Header */}
+        <div className="mb-4 text-center">
+          <h2 className="text-[18px] font-bold text-[#111B21]">
+            הכירו את החברים
+          </h2>
+          <p className="mt-1 text-[13px] text-[#667781]">
+            {currentIndex + 1} / {activeProfiles.length}
+          </p>
+        </div>
+
+        {/* Card */}
+        <div className="relative overflow-hidden" style={{ minHeight: 440 }}>
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={current.displayName}
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.3}
+              onDragEnd={handleDragEnd}
+              className="rounded-2xl bg-white p-5 shadow-lg"
+            >
+              <ProfileCard
+                profile={current}
+                onOpenGallery={() => setShowGallery(true)}
+                onSetNickname={(nick) =>
+                  onSetNickname(current.displayName, nick)
+                }
+              />
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Navigation */}
+        <div className="mt-4 flex items-center justify-between">
+          <button
+            onClick={goPrev}
+            disabled={currentIndex === 0}
+            className="rounded-full px-4 py-2 text-[14px] font-medium text-[#00A884] transition-opacity disabled:opacity-30"
+          >
+            הקודם
+          </button>
+
+          {/* Progress dots */}
+          <div className="flex gap-1.5">
+            {activeProfiles.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => {
+                  setDirection(i > currentIndex ? 1 : -1);
+                  setCurrentIndex(i);
+                }}
+                className={`h-2 rounded-full transition-all ${
+                  i === currentIndex
+                    ? "w-5 bg-[#00A884]"
+                    : "w-2 bg-[#00A884]/30"
+                }`}
+              />
+            ))}
+          </div>
+
+          <button
+            onClick={goNext}
+            className="rounded-full bg-[#00A884] px-4 py-2 text-[14px] font-bold text-white"
+          >
+            {currentIndex === activeProfiles.length - 1 ? "סיום" : "הבא"}
+          </button>
+        </div>
+      </div>
+
+      {/* Photo Gallery overlay */}
+      {showGallery && (
+        <PhotoGallery
+          media={chat.media}
+          memberNames={activeProfiles.map((p) => p.displayName)}
+          targetMember={current.displayName}
+          onTag={onTagPhoto}
+          onUpload={(name, url, blob) => onSetPhoto(name, url, blob)}
+          onClose={() => setShowGallery(false)}
+        />
+      )}
+    </motion.div>
+  );
+}
+
+/** Individual profile card content */
+function ProfileCard({
+  profile,
+  onOpenGallery,
+  onSetNickname,
+}: {
+  profile: MemberProfile;
+  onOpenGallery: () => void;
+  onSetNickname: (nickname: string) => void;
+}) {
+  const [editingNick, setEditingNick] = useState(false);
+  const nickRef = useRef<HTMLInputElement>(null);
+
+  const summary = profile.aiSummary ?? profile.personalitySummary;
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      {/* Avatar */}
+      <button
+        onClick={onOpenGallery}
+        className="group relative flex h-20 w-20 items-center justify-center rounded-full bg-[#DFE5E7] transition-transform hover:scale-105"
+      >
+        {profile.photoUrl ? (
+          <img
+            src={profile.photoUrl}
+            alt={profile.displayName}
+            className="h-full w-full rounded-full object-cover"
+          />
+        ) : (
+          <span className="text-[32px]">
+            {profile.personalityEmoji}
+          </span>
+        )}
+        <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/30 opacity-0 transition-opacity group-hover:opacity-100">
+          <svg
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            fill="none"
+            stroke="white"
+            strokeWidth="2"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+        </div>
+      </button>
+
+      {/* Name + personality title */}
+      <div className="text-center">
+        {editingNick ? (
+          <input
+            ref={nickRef}
+            defaultValue={profile.nickname}
+            onBlur={(e) => {
+              const val = e.target.value.trim();
+              if (val) onSetNickname(val);
+              setEditingNick(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
+            autoFocus
+            className="w-full rounded-lg border border-[#00A884] bg-transparent px-2 py-1 text-center text-[18px] font-bold text-[#111B21] outline-none"
+          />
+        ) : (
+          <h3 className="text-[18px] font-bold text-[#111B21]">
+            {profile.nickname}
+          </h3>
+        )}
+        <p className="mt-0.5 text-[14px] text-[#667781]">
+          {profile.personalityEmoji} {profile.personalityTitle}
+        </p>
+      </div>
+
+      {/* Summary */}
+      <div className="w-full rounded-xl bg-[#F0F2F5] px-4 py-3">
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={summary}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="text-center text-[14px] leading-relaxed text-[#111B21]"
+            dir="auto"
+          >
+            {summary}
+          </motion.p>
+        </AnimatePresence>
+      </div>
+
+      {/* Stats bar */}
+      <div className="flex items-center gap-4 text-[13px] text-[#667781]">
+        <span>{profile.messageCount} הודעות</span>
+        {profile.voiceNoteCount > 0 && (
+          <span>{profile.voiceNoteCount} הודעות קול</span>
+        )}
+        {profile.mediaMessages > 0 && (
+          <span>{profile.mediaMessages} מדיה</span>
+        )}
+      </div>
+
+      {/* Sample message */}
+      {profile.sampleMessages[0] && (
+        <div className="w-full rounded-lg rounded-tr-none bg-[#DCF8C6] px-4 py-2.5 shadow-sm">
+          <p className="text-[13px] leading-relaxed text-[#111B21]" dir="auto">
+            &ldquo;{profile.sampleMessages[0]}&rdquo;
+          </p>
+        </div>
+      )}
+
+      {/* Voice note player */}
+      {profile.sampleVoiceUrl && (
+        <VoicePlayer url={profile.sampleVoiceUrl} />
+      )}
+
+      {/* Action buttons */}
+      <div className="flex gap-2">
+        <button
+          onClick={onOpenGallery}
+          className="rounded-full bg-[#F0F2F5] px-3 py-1.5 text-[12px] font-medium text-[#111B21] transition-colors hover:bg-[#E4E6EB]"
+        >
+          תייגו תמונות
+        </button>
+        <button
+          onClick={() => {
+            setEditingNick(true);
+            setTimeout(() => nickRef.current?.focus(), 50);
+          }}
+          className="rounded-full bg-[#F0F2F5] px-3 py-1.5 text-[12px] font-medium text-[#111B21] transition-colors hover:bg-[#E4E6EB]"
+        >
+          כינוי
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Simple audio player for voice notes */
+function VoicePlayer({ url }: { url: string }) {
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  const toggle = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playing) {
+      audio.pause();
+    } else {
+      audio.play();
+    }
+    setPlaying(!playing);
+  }, [playing]);
+
+  return (
+    <div className="flex w-full items-center gap-3 rounded-full bg-[#F0F2F5] px-4 py-2">
+      <audio
+        ref={audioRef}
+        src={url}
+        onEnded={() => setPlaying(false)}
+        preload="none"
+      />
+      <button
+        onClick={toggle}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#00A884] text-white"
+      >
+        {playing ? (
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <rect x="6" y="4" width="4" height="16" />
+            <rect x="14" y="4" width="4" height="16" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
+        )}
+      </button>
+      <div className="flex flex-1 items-center gap-0.5">
+        {Array.from({ length: 20 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-3 w-1 rounded-full bg-[#00A884]/40"
+            style={{
+              height: `${6 + Math.random() * 14}px`,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}

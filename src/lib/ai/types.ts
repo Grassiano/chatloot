@@ -34,10 +34,18 @@ export const AnalyzedMessageSchema = z.object({
   gmNote: z.string().optional(),
 });
 
+/** Per-member personality profile from Claude */
+export const MemberProfileAiSchema = z.object({
+  displayName: z.string(),
+  summary: z.string(),
+});
+
 /** Full response from Claude */
 export const AnalyzeResponseSchema = z.object({
   rankedMessages: z.array(AnalyzedMessageSchema),
+  memberProfiles: z.array(MemberProfileAiSchema).optional(),
 });
 
 export type AnalyzedMessage = z.infer<typeof AnalyzedMessageSchema>;
+export type MemberProfileAi = z.infer<typeof MemberProfileAiSchema>;
 export type AnalyzeResponse = z.infer<typeof AnalyzeResponseSchema>;

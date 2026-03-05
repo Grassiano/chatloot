@@ -5,6 +5,8 @@ import { sampleMessagesForAnalysis } from "./sample-messages";
 
 export interface AnalysisResult {
   questions: WhoSaidItQuestion[];
+  scores: Array<{ score: number; reason: string }>;
+  memberSummaries: Record<string, string>;
   isAiEnhanced: boolean;
 }
 
@@ -19,10 +21,10 @@ export async function analyzeChat(
     const sampled = sampleMessagesForAnalysis(chat);
 
     if (sampled.length === 0) {
-      return { questions: [], isAiEnhanced: false };
+      return { questions: [], scores: [], memberSummaries: {}, isAiEnhanced: false };
     }
 
-    const memberSummaries = chat.members.map((m) => {
+    const memberPayload = chat.members.map((m) => {
       const stats = chat.stats.members.get(m.displayName);
       return {
         displayName: m.displayName,
@@ -38,18 +40,19 @@ export async function analyzeChat(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         messages: sampled,
-        members: memberSummaries,
+        members: memberPayload,
         groupName: chat.groupName,
       }),
     });
 
     if (!response.ok) {
-      return { questions: [], isAiEnhanced: false };
+      return { questions: [], scores: [], memberSummaries: {}, isAiEnhanced: false };
     }
 
     const data: AnalyzeResponse = await response.json();
 
     const questions: WhoSaidItQuestion[] = [];
+    const scores: Array<{ score: number; reason: string }> = [];
 
     for (const ranked of data.rankedMessages.sort((a, b) => b.score - a.score)) {
       const original = sampled[ranked.id];
@@ -71,14 +74,26 @@ export async function analyzeChat(
         timestamp: new Date(original.date),
         gmNote: ranked.gmNote,
       });
+
+      scores.push({ score: ranked.score, reason: ranked.reason });
+    }
+
+    // Extract member summaries from Claude
+    const aiSummaries: Record<string, string> = {};
+    if (data.memberProfiles) {
+      for (const profile of data.memberProfiles) {
+        aiSummaries[profile.displayName] = profile.summary;
+      }
     }
 
     return {
       questions,
+      scores,
+      memberSummaries: aiSummaries,
       isAiEnhanced: questions.length > 0,
     };
   } catch {
-    return { questions: [], isAiEnhanced: false };
+    return { questions: [], scores: [], memberSummaries: {}, isAiEnhanced: false };
   }
 }
 

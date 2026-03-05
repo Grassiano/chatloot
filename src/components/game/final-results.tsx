@@ -5,9 +5,10 @@ import type { useGame } from "@/hooks/use-game";
 
 interface FinalResultsProps {
   game: ReturnType<typeof useGame>;
+  memberPhotos?: Map<string, string>;
 }
 
-export function FinalResults({ game }: FinalResultsProps) {
+export function FinalResults({ game, memberPhotos }: FinalResultsProps) {
   const { state } = game;
   const { players, roundResults, settings } = state;
 
