@@ -3,24 +3,24 @@ import { z } from "zod";
 /** Message data sent to the AI for analysis */
 export const AnalyzeMessageSchema = z.object({
   id: z.number(),
-  author: z.string(),
-  message: z.string(),
-  date: z.string(),
+  author: z.string().max(100),
+  message: z.string().max(500),
+  date: z.string().max(50),
 });
 
 /** Member summary sent to the AI */
 export const AnalyzeMemberSchema = z.object({
-  displayName: z.string(),
+  displayName: z.string().max(100),
   messageCount: z.number(),
   avgMessageLength: z.number(),
-  topEmojis: z.array(z.string()),
+  topEmojis: z.array(z.string().max(10)).max(10),
 });
 
 /** Full request to /api/analyze */
 export const AnalyzeRequestSchema = z.object({
-  messages: z.array(AnalyzeMessageSchema),
-  members: z.array(AnalyzeMemberSchema),
-  groupName: z.string().nullable(),
+  messages: z.array(AnalyzeMessageSchema).max(300),
+  members: z.array(AnalyzeMemberSchema).max(50),
+  groupName: z.string().max(200).nullable(),
 });
 
 export type AnalyzeRequest = z.infer<typeof AnalyzeRequestSchema>;

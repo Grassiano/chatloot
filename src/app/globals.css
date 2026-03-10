@@ -196,6 +196,11 @@ img {
   image-orientation: from-image;
 }
 
+/* Prevent double-tap zoom on interactive elements */
+button, a, input, [role="button"] {
+  touch-action: manipulation;
+}
+
 /* Glassmorphism utilities */
 .glass-light {
   background: rgba(255, 255, 255, 0.85);

@@ -29,14 +29,15 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
     year: "numeric",
   });
 
+  const [revealDone, setRevealDone] = useState(false);
+
   useEffect(() => {
     const timer = setInterval(() => {
       setVisibleIndex((prev) => {
         const next = prev + 1;
         if (next >= REVEAL_ITEMS.length) {
           clearInterval(timer);
-          // Auto-advance after showing all items
-          setTimeout(onComplete, 2000);
+          setRevealDone(true);
           return prev;
         }
         return next;
@@ -47,7 +48,7 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
     setVisibleIndex(0);
 
     return () => clearInterval(timer);
-  }, [onComplete]);
+  }, []);
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20, scale: 0.95, filter: "blur(8px)" },
@@ -160,8 +161,17 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
         </AnimatePresence>
       </div>
 
-      {/* Skip hint */}
-      {visibleIndex < REVEAL_ITEMS.length - 1 && (
+      {/* Continue button after reveal, or skip hint during */}
+      {revealDone ? (
+        <motion.button
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={onComplete}
+          className="absolute bottom-8 rounded-full bg-[#00A884] px-8 py-3 text-[15px] font-bold text-white shadow-lg transition-transform active:scale-95"
+        >
+          יאללה, קדימה →
+        </motion.button>
+      ) : (
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.5 }}

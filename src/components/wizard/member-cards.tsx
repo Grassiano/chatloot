@@ -47,12 +47,13 @@ export function MemberCards({
     }
   }, [currentIndex]);
 
+  // RTL: swipe left = forward (next), swipe right = backward (prev)
   const handleDragEnd = useCallback(
     (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
       if (info.offset.x < -SWIPE_THRESHOLD) {
-        goPrev();
-      } else if (info.offset.x > SWIPE_THRESHOLD) {
         goNext();
+      } else if (info.offset.x > SWIPE_THRESHOLD) {
+        goPrev();
       }
     },
     [goNext, goPrev]

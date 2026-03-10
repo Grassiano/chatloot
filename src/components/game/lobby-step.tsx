@@ -97,7 +97,7 @@ export function LobbyStep({ game, memberNames }: LobbyStepProps) {
                       </div>
                       <button
                         onClick={() => game.removePlayer(player.id)}
-                        className="text-[12px] text-[#667781] hover:text-[#FF6B6B]"
+                        className="min-h-[44px] min-w-[44px] text-[12px] text-[#667781] hover:text-[#FF6B6B]"
                       >
                         הסר
                       </button>

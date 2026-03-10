@@ -187,7 +187,7 @@ function HighlightCardComponent({
                   highlight.category === cat.value ? null : cat.value
                 )
               }
-              className={`rounded-full px-3 py-1.5 text-[13px] transition-colors ${
+              className={`min-h-[44px] min-w-[44px] rounded-full px-3 py-2.5 text-[13px] transition-colors ${
                 highlight.category === cat.value
                   ? "bg-[#00A884] text-white ring-2 ring-[#00A884]/30"
                   : "bg-[#F0F2F5] text-[#667781] hover:bg-[#E4E6EB]"

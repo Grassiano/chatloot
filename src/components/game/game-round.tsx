@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { useGame } from "@/hooks/use-game";
 import { useTimer } from "@/hooks/use-timer";
@@ -13,6 +13,24 @@ interface GameRoundProps {
 }
 
 export function GameRound({ game, memberPhotos }: GameRoundProps) {
+  // Keep screen awake during gameplay
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  useEffect(() => {
+    async function acquireWakeLock() {
+      try {
+        if ("wakeLock" in navigator) {
+          wakeLockRef.current = await navigator.wakeLock.request("screen");
+        }
+      } catch {
+        // Wake Lock API not supported or permission denied — no-op
+      }
+    }
+    acquireWakeLock();
+    return () => {
+      wakeLockRef.current?.release();
+      wakeLockRef.current = null;
+    };
+  }, []);
   const { state } = game;
   const { phase, currentQuestion, currentRound, settings, players } = state;
 
@@ -32,25 +50,28 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
   const [answeredPlayers, setAnsweredPlayers] = useState<Set<string>>(
     new Set()
   );
+  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
 
   // Reset state on new round
   useEffect(() => {
     setAnsweredPlayers(new Set());
+    setCurrentPlayerIndex(0);
     setSelectedAnswer(null);
     setShowConfetti(false);
   }, [currentRound]);
 
-  // Trigger confetti + haptics on reveal when player got it right
+  // Trigger confetti + haptics on reveal — check all players' answers
   useEffect(() => {
     if (phase !== "reveal") return;
-    const currentPlayer = players[0];
-    if (!currentPlayer) return;
-    const result = state.roundResults
-      .find((r) => r.roundNumber === currentRound)
-      ?.answers.get(currentPlayer.id);
-    if (result?.isCorrect) {
+    const roundResult = state.roundResults.find(
+      (r) => r.roundNumber === currentRound
+    );
+    const anyCorrect = players.some(
+      (p) => roundResult?.answers.get(p.id)?.isCorrect
+    );
+    if (anyCorrect) {
       hapticSuccess();
       setShowConfetti(true);
     } else {
@@ -70,7 +91,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
     }
   }, [phase, showQuestion, timerReset, timerStart]);
 
-  const currentPlayer = currentQuestion ? players[0] : undefined;
+  const currentPlayer = currentQuestion ? players[currentPlayerIndex] : undefined;
   const allAnswered = answeredPlayers.size >= players.length;
 
   // Auto-reveal when all players have answered — with cleanup
@@ -95,9 +116,17 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
     newAnswered.add(currentPlayer.id);
     setAnsweredPlayers(newAnswered);
 
-    setTimeout(() => {
-      setSelectedAnswer(null);
-    }, 600);
+    // Advance to next player (if multi-player and not all answered yet)
+    if (newAnswered.size < players.length) {
+      setTimeout(() => {
+        setSelectedAnswer(null);
+        setCurrentPlayerIndex((i) => i + 1);
+      }, 600);
+    } else {
+      setTimeout(() => {
+        setSelectedAnswer(null);
+      }, 600);
+    }
   }
 
   return (

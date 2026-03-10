@@ -15,7 +15,7 @@ import { GameRound } from "@/components/game/game-round";
 import { FinalResults } from "@/components/game/final-results";
 import { GmSetup } from "@/components/wizard/gm-setup";
 import { ModeSelect } from "@/components/game/mode-select";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type FlowPhase = "upload" | "analyzing" | "wizard" | "mode-select" | "game";
 
@@ -28,6 +28,7 @@ const LOADING_MESSAGES = [
 ];
 
 export default function PlayPage() {
+  const router = useRouter();
   const game = useGame();
   const [flowPhase, setFlowPhase] = useState<FlowPhase>("upload");
   const [chat, setChat] = useState<ParsedChat | null>(null);
@@ -74,6 +75,10 @@ export default function PlayPage() {
       extracted.media,
       uploadName
     );
+    if (parsed.members.length < 2 || parsed.stats.totalMessages < 10) {
+      throw new Error("no_eligible_messages");
+    }
+
     setChat(parsed);
     setFlowPhase("analyzing");
 
@@ -81,10 +86,7 @@ export default function PlayPage() {
       const result = await analyzeChat(parsed);
       setAnalysis(result);
       setFlowPhase("wizard");
-    } catch (err) {
-      if (err instanceof Error && err.message === "no_eligible_messages") {
-        throw err;
-      }
+    } catch {
       // AI failed — still go to wizard with fallback
       setAnalysis(null);
       setFlowPhase("wizard");
@@ -136,8 +138,17 @@ export default function PlayPage() {
     >
       {/* Header */}
       <header className="sticky top-0 z-50 flex items-center gap-3 bg-[#075E54] px-4 py-2.5 text-white shadow-md">
-        <Link
-          href="/"
+        <button
+          onClick={(e) => {
+            const isActiveGame =
+              flowPhase === "game" &&
+              !["setup", "lobby", "final"].includes(phase);
+            if (isActiveGame && !confirm("יציאה באמצע המשחק?")) {
+              e.preventDefault();
+              return;
+            }
+            router.push("/");
+          }}
           aria-label="חזרה לדף הבית"
           className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-white/10"
         >
@@ -149,7 +160,7 @@ export default function PlayPage() {
           >
             <path d="M12 4l1.41 1.41L7.83 11H20v2H7.83l5.58 5.59L12 20l-8-8 8-8z" />
           </svg>
-        </Link>
+        </button>
         <div className="flex-1">
           <h1 className="text-[15px] font-medium">ChatLoot</h1>
           <p className="text-[11px] opacity-75">
@@ -256,7 +267,18 @@ export default function PlayPage() {
             )}
 
           {inGame && phase === "final" && (
-            <FinalResults key="final" game={game} memberPhotos={memberPhotos} />
+            <FinalResults
+              key="final"
+              game={game}
+              memberPhotos={memberPhotos}
+              onNewGame={() => {
+                game.reset();
+                setChat(null);
+                setAnalysis(null);
+                setIsAiEnhanced(false);
+                setFlowPhase("upload");
+              }}
+            />
           )}
         </AnimatePresence>
       </main>

@@ -3,7 +3,35 @@ import Anthropic from "@anthropic-ai/sdk";
 import { AnalyzeRequestSchema, AnalyzeResponseSchema } from "@/lib/ai/types";
 import { buildAnalyzePrompt } from "@/lib/ai/prompt";
 
+// Simple in-memory rate limiter (per-IP, 5 requests per 60s)
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX_REQUESTS = 5;
+const rateLimiter = new Map<string, number[]>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const timestamps = (rateLimiter.get(ip) ?? []).filter(
+    (t) => now - t < RATE_WINDOW_MS
+  );
+  if (timestamps.length >= RATE_MAX_REQUESTS) {
+    rateLimiter.set(ip, timestamps);
+    return true;
+  }
+  timestamps.push(now);
+  rateLimiter.set(ip, timestamps);
+  return false;
+}
+
 export async function POST(request: Request) {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  if (isRateLimited(ip)) {
+    return NextResponse.json(
+      { error: "Too many requests. Try again in a minute." },
+      { status: 429 }
+    );
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -61,9 +89,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json(validated.data);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("Analysis failed:", error);
     return NextResponse.json(
-      { error: "Analysis failed", message },
+      { error: "Analysis failed" },
       { status: 500 }
     );
   }

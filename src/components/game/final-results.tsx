@@ -9,9 +9,10 @@ import { hapticCelebration } from "@/lib/haptics";
 interface FinalResultsProps {
   game: ReturnType<typeof useGame>;
   memberPhotos?: Map<string, string>;
+  onNewGame?: () => void;
 }
 
-export function FinalResults({ game, memberPhotos }: FinalResultsProps) {
+export function FinalResults({ game, memberPhotos, onNewGame }: FinalResultsProps) {
   const { state } = game;
   const { players, roundResults, settings } = state;
   const [showConfetti, setShowConfetti] = useState(false);
@@ -132,7 +133,7 @@ export function FinalResults({ game, memberPhotos }: FinalResultsProps) {
                   <div className="flex-1">
                     <span className="text-[15px] font-medium">{player.name}</span>
                     <p className="text-[12px] text-[#8B949E]">
-                      {stats.correct}/{stats.total} נכונות · {stats.accuracy}% דיוק · {stats.avgTime}s ממוצע
+                      {stats.correct}/{stats.total} נכונות · {stats.accuracy}% דיוק · {stats.avgTime} שנ׳ ממוצע
                     </p>
                   </div>
                   <span className="text-[18px] font-bold tabular-nums text-[#F5C542]">
@@ -152,10 +153,10 @@ export function FinalResults({ game, memberPhotos }: FinalResultsProps) {
           className="mt-8 flex w-full max-w-lg gap-3"
         >
           <button
-            onClick={game.reset}
+            onClick={onNewGame ?? game.reset}
             className="flex-1 rounded-xl border border-white/10 bg-white/5 py-4 text-[15px] font-bold text-white backdrop-blur-md transition-all hover:border-white/20 hover:bg-white/10 active:scale-[0.98]"
           >
-            משחק חדש
+            צ׳אט חדש
           </button>
           <button
             onClick={game.restartGame}
