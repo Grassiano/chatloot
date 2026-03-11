@@ -6,7 +6,24 @@ import { buildAnalyzePrompt } from "@/lib/ai/prompt";
 // Simple in-memory rate limiter (per-IP, 5 requests per 60s)
 const RATE_WINDOW_MS = 60_000;
 const RATE_MAX_REQUESTS = 5;
+const GLOBAL_MAX_PER_MINUTE = 100;
 const rateLimiter = new Map<string, number[]>();
+let globalRequestCount = 0;
+
+// Periodic cleanup: evict stale entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, timestamps] of rateLimiter) {
+    const fresh = timestamps.filter((t) => now - t < RATE_WINDOW_MS);
+    if (fresh.length === 0) rateLimiter.delete(ip);
+    else rateLimiter.set(ip, fresh);
+  }
+}, 5 * 60_000);
+
+// Reset global counter every minute
+setInterval(() => {
+  globalRequestCount = 0;
+}, 60_000);
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
@@ -23,8 +40,20 @@ function isRateLimited(ip: string): boolean {
 }
 
 export async function POST(request: Request) {
+  // Global rate limit as a hard ceiling (defense against IP spoofing)
+  if (++globalRequestCount > GLOBAL_MAX_PER_MINUTE) {
+    return NextResponse.json(
+      { error: "Service overloaded. Try again in a minute." },
+      { status: 503 }
+    );
+  }
+
+  // Prefer x-real-ip (set by reverse proxy, not spoofable), fall back to x-forwarded-for
   const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    request.headers.get("x-real-ip") ??
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "unknown";
+
   if (isRateLimited(ip)) {
     return NextResponse.json(
       { error: "Too many requests. Try again in a minute." },
@@ -68,16 +97,34 @@ export async function POST(request: Request) {
       );
     }
 
-    // Extract JSON from Claude's response
-    const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    // Extract first balanced JSON object from Claude's response
+    const jsonStart = textBlock.text.indexOf("{");
+    if (jsonStart === -1) {
       return NextResponse.json(
         { error: "AI response was not valid JSON" },
         { status: 502 }
       );
     }
 
-    const aiResult = JSON.parse(jsonMatch[0]);
+    let depth = 0;
+    let jsonEnd = -1;
+    for (let i = jsonStart; i < textBlock.text.length; i++) {
+      if (textBlock.text[i] === "{") depth++;
+      if (textBlock.text[i] === "}") depth--;
+      if (depth === 0) {
+        jsonEnd = i + 1;
+        break;
+      }
+    }
+
+    if (jsonEnd === -1) {
+      return NextResponse.json(
+        { error: "AI response was not valid JSON" },
+        { status: 502 }
+      );
+    }
+
+    const aiResult = JSON.parse(textBlock.text.slice(jsonStart, jsonEnd));
     const validated = AnalyzeResponseSchema.safeParse(aiResult);
 
     if (!validated.success) {
@@ -89,7 +136,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json(validated.data);
   } catch (error) {
-    console.error("Analysis failed:", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("Analysis failed:", message);
     return NextResponse.json(
       { error: "Analysis failed" },
       { status: 500 }

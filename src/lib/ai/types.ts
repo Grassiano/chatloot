@@ -29,15 +29,15 @@ export type AnalyzeRequest = z.infer<typeof AnalyzeRequestSchema>;
 export const AnalyzedMessageSchema = z.object({
   id: z.number(),
   score: z.number().min(1).max(10),
-  reason: z.string(),
-  distractors: z.array(z.string()).min(1).max(3),
-  gmNote: z.string().optional(),
+  reason: z.string().max(500),
+  distractors: z.array(z.string().max(100)).min(1).max(3),
+  gmNote: z.string().max(300).optional(),
 });
 
 /** Per-member personality profile from Claude */
 export const MemberProfileAiSchema = z.object({
-  displayName: z.string(),
-  summary: z.string(),
+  displayName: z.string().max(100),
+  summary: z.string().max(500),
 });
 
 /** Full response from Claude */

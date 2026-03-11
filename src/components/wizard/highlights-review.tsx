@@ -130,7 +130,7 @@ function HighlightCardComponent({
       </div>
 
       {/* Message */}
-      <div className="mb-2 rounded-lg rounded-tr-none bg-[#D9FDD3] px-3 py-2 shadow-sm">
+      <div className="mb-2 rounded-lg rounded-tl-none bg-[#D9FDD3] px-3 py-2 shadow-sm">
         <p className="text-[14px] leading-relaxed text-[#111B21]" dir="auto">
           &ldquo;{highlight.question.messageText}&rdquo;
         </p>

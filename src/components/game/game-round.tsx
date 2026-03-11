@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { useGame } from "@/hooks/use-game";
+import { shouldShowScores } from "@/hooks/use-game";
+import type { GameQuestion } from "@/lib/game/types";
 import { useTimer } from "@/hooks/use-timer";
 import { Confetti } from "@/components/ui/confetti";
 import { hapticTap, hapticSuccess, hapticError } from "@/lib/haptics";
@@ -39,8 +41,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
   });
 
   // Stable refs — destructured once so useEffect deps don't thrash every render
-  const { showQuestion, revealAnswer, submitAnswer, showScores, nextRound } =
-    game;
+  const { showQuestion, revealAnswer, submitAnswer, showScores, nextRound } = game;
   const {
     reset: timerReset,
     start: timerStart,
@@ -54,12 +55,16 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
 
+  // Synchronous guard against double-tap
+  const submittingRef = useRef(false);
+
   // Reset state on new round
   useEffect(() => {
     setAnsweredPlayers(new Set());
     setCurrentPlayerIndex(0);
     setSelectedAnswer(null);
     setShowConfetti(false);
+    submittingRef.current = false;
   }, [currentRound]);
 
   // Trigger confetti + haptics on reveal — check all players' answers
@@ -103,10 +108,75 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
     }
   }, [allAnswered, phase, revealAnswer, timerStop]);
 
+  // Auto-advance from reveal → scores (if strategic) or next question
+  const [revealCountdown, setRevealCountdown] = useState(4);
+  const [revealPaused, setRevealPaused] = useState(false);
+  useEffect(() => {
+    if (phase !== "reveal") {
+      setRevealCountdown(4);
+      setRevealPaused(false);
+      return;
+    }
+    if (revealPaused) return;
+    const interval = setInterval(() => {
+      setRevealCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          if (shouldShowScores(currentRound, settings.totalRounds)) {
+            showScores();
+          } else {
+            nextRound();
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [phase, currentRound, settings.totalRounds, showScores, nextRound, revealPaused]);
+
+  // Auto-advance from scores → next round (5s)
+  const [scoresCountdown, setScoresCountdown] = useState(5);
+  useEffect(() => {
+    if (phase !== "scores") {
+      setScoresCountdown(5);
+      return;
+    }
+    const interval = setInterval(() => {
+      setScoresCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          nextRound();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [phase, nextRound]);
+
+  // Tap-to-pause / tap-to-continue on reveal
+  const handleRevealTap = useCallback(() => {
+    if (phase !== "reveal") return;
+    if (revealPaused) {
+      // Resume — skip directly to next
+      if (shouldShowScores(currentRound, settings.totalRounds)) {
+        showScores();
+      } else {
+        nextRound();
+      }
+    } else {
+      setRevealPaused(true);
+    }
+  }, [phase, revealPaused, currentRound, settings.totalRounds, showScores, nextRound]);
+
   if (!currentQuestion) return null;
 
   function handleAnswer(answer: string) {
     if (!currentPlayer || answeredPlayers.has(currentPlayer.id)) return;
+    // Synchronous double-tap guard
+    if (submittingRef.current) return;
+    submittingRef.current = true;
 
     hapticTap();
     setSelectedAnswer(answer);
@@ -121,10 +191,12 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
       setTimeout(() => {
         setSelectedAnswer(null);
         setCurrentPlayerIndex((i) => i + 1);
+        submittingRef.current = false;
       }, 600);
     } else {
       setTimeout(() => {
         setSelectedAnswer(null);
+        submittingRef.current = false;
       }, 600);
     }
   }
@@ -144,9 +216,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
           סיבוב {currentRound} / {settings.totalRounds}
         </span>
         {phase === "answering" && (
-          <span className="text-[13px] tabular-nums text-[#8B949E]">
-            {Math.ceil(timer.timeLeft)} שניות
-          </span>
+          <TimerCountdown timer={timer} />
         )}
       </div>
 
@@ -167,9 +237,9 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                 transition={{ duration: 1 }}
                 className="mb-6 text-[15px] font-medium text-[#F5C542]"
               >
-                מי אמר את זה?
+                <QuestionTypeLabel question={currentQuestion} />
               </motion.p>
-              <MessageBubble text={currentQuestion.messageText} />
+              <QuestionPrompt question={currentQuestion} />
             </motion.div>
           )}
 
@@ -182,7 +252,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
               exit={{ opacity: 0 }}
               className="w-full max-w-lg"
             >
-              <MessageBubble text={currentQuestion.messageText} />
+              <QuestionPrompt question={currentQuestion} />
 
               {/* Current player indicator (multi-player only) */}
               {players.length > 1 && currentPlayer && !allAnswered && (
@@ -203,10 +273,12 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
               )}
 
               {/* Answer options */}
-              <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className={`mt-4 grid gap-2 ${currentQuestion.type === "true_false" ? "grid-cols-1" : "grid-cols-2"}`}>
                 {currentQuestion.options.map((option) => {
                   const isSelected = selectedAnswer === option;
-                  const photoUrl = memberPhotos?.get(option);
+                  const photoUrl = currentQuestion.type === "who_said_it" || currentQuestion.type === "stat_trivia"
+                    ? memberPhotos?.get(option)
+                    : undefined;
                   return (
                     <motion.button
                       key={option}
@@ -226,9 +298,12 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                       {photoUrl && (
                         <img
                           src={photoUrl}
-                          alt=""
+                          alt={option}
                           className="h-7 w-7 rounded-full object-cover"
                         />
+                      )}
+                      {currentQuestion.type === "true_false" && (
+                        <span className="text-[20px]">{option === "נכון" ? "✓" : "✕"}</span>
                       )}
                       {option}
                     </motion.button>
@@ -255,7 +330,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
             </motion.div>
           )}
 
-          {/* Reveal phase */}
+          {/* Reveal phase — tap to pause/continue */}
           {phase === "reveal" && (
             <motion.div
               key="reveal"
@@ -263,8 +338,9 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="w-full max-w-lg text-center"
+              onClick={handleRevealTap}
             >
-              <MessageBubble text={currentQuestion.messageText} />
+              <QuestionPrompt question={currentQuestion} />
 
               <motion.div
                 initial={{ opacity: 0, y: 20, scale: 0.8 }}
@@ -281,17 +357,23 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                   התשובה היא...
                 </p>
                 <div className="flex items-center justify-center gap-3">
-                  {memberPhotos?.get(currentQuestion.correctAuthor) && (
+                  {memberPhotos?.get(currentQuestion.correctAnswer) && (
                     <img
-                      src={memberPhotos.get(currentQuestion.correctAuthor)}
-                      alt=""
+                      src={memberPhotos.get(currentQuestion.correctAnswer)}
+                      alt={currentQuestion.correctAnswer}
                       className="h-12 w-12 rounded-full object-cover"
                     />
                   )}
                   <p className="text-[28px] font-black text-[#F5C542]">
-                    {currentQuestion.correctAuthor}
+                    {currentQuestion.correctAnswer}
                   </p>
                 </div>
+                {/* Show stat value for trivia questions */}
+                {currentQuestion.type === "stat_trivia" && (
+                  <p className="mt-1 text-[14px] text-[#8B949E]">
+                    {currentQuestion.statValue}
+                  </p>
+                )}
               </motion.div>
 
               {/* Per-player results */}
@@ -335,15 +417,18 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                 })}
               </div>
 
-              <motion.button
+              {/* Auto-advance countdown — tap to pause/continue */}
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 1.2 }}
-                onClick={showScores}
-                className="mt-6 rounded-xl bg-[#F5C542] px-6 py-3 text-[15px] font-bold text-[#0D1117] transition-transform hover:scale-105 active:scale-95"
+                className="mt-6 flex items-center justify-center gap-2 text-[13px] text-[#8B949E]"
               >
-                טבלת ניקוד
-              </motion.button>
+                {revealPaused ? (
+                  <span>לחצו להמשיך ▶</span>
+                ) : (
+                  <span>ממשיכים בעוד {revealCountdown}... (לחצו לעצור)</span>
+                )}
+              </motion.div>
             </motion.div>
           )}
 
@@ -390,17 +475,18 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                   ))}
               </div>
 
-              <motion.button
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                onClick={nextRound}
-                className="mt-8 w-full rounded-xl bg-[#F5C542] py-4 text-[16px] font-bold text-[#0A0A0F] shadow-[0_4px_20px_rgba(245,197,66,0.3)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
-              >
-                {currentRound < settings.totalRounds
-                  ? "סיבוב הבא →"
-                  : "תוצאות סופיות"}
-              </motion.button>
+              {/* Auto-advance countdown bar — driven by state for sync */}
+              <div className="mt-8">
+                <div className="mb-2 text-center text-[13px] text-[#8B949E]">
+                  ממשיכים בעוד {scoresCountdown}...
+                </div>
+                <div className="h-1 w-full overflow-hidden rounded-full bg-[#21262D]">
+                  <div
+                    className="h-full rounded-full bg-[#F5C542] transition-all duration-1000 ease-linear"
+                    style={{ width: `${(scoresCountdown / 5) * 100}%` }}
+                  />
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -432,6 +518,15 @@ function TimerBar({ timer }: { timer: ReturnType<typeof useTimer> }) {
   );
 }
 
+/** Isolated countdown text — absorbs 100ms timer re-renders */
+function TimerCountdown({ timer }: { timer: ReturnType<typeof useTimer> }) {
+  return (
+    <span className="text-[13px] tabular-nums text-[#8B949E]">
+      {Math.ceil(timer.timeLeft)} שניות
+    </span>
+  );
+}
+
 function MessageBubble({ text }: { text: string }) {
   return (
     <motion.div
@@ -442,4 +537,66 @@ function MessageBubble({ text }: { text: string }) {
       <p className="text-[17px] leading-relaxed text-[#F0F6FC]">{text}</p>
     </motion.div>
   );
+}
+
+/** Label shown above the question content */
+function QuestionTypeLabel({ question }: { question: GameQuestion }) {
+  switch (question.type) {
+    case "who_said_it":
+      return <>מי אמר את זה?</>;
+    case "stat_trivia":
+      return <>📊 טריוויה</>;
+    case "emoji_match":
+      return <>😎 אימוג׳ים</>;
+    case "true_false":
+      return <>נכון או לא?</>;
+  }
+}
+
+/** Renders the main question content (bubble, prompt, statement, etc.) */
+function QuestionPrompt({ question }: { question: GameQuestion }) {
+  switch (question.type) {
+    case "who_said_it":
+      return <MessageBubble text={question.messageText} />;
+    case "stat_trivia":
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-auto max-w-sm text-center"
+        >
+          <p className="text-[13px] font-medium text-[#8B949E]">📊 טריוויה</p>
+          <p className="mt-2 text-[22px] font-bold leading-snug text-[#F0F6FC]">
+            {question.prompt}
+          </p>
+        </motion.div>
+      );
+    case "emoji_match":
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-auto max-w-sm text-center"
+        >
+          {question.targetEmoji && (
+            <p className="mb-2 text-[48px]">{question.targetEmoji}</p>
+          )}
+          <p className="text-[20px] font-bold leading-snug text-[#F0F6FC]">
+            {question.prompt}
+          </p>
+        </motion.div>
+      );
+    case "true_false":
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-auto max-w-sm rounded-2xl border border-white/10 bg-white/5 px-5 py-4 shadow-lg backdrop-blur-lg text-center"
+        >
+          <p className="text-[19px] font-bold leading-relaxed text-[#F0F6FC]">
+            {question.statement}
+          </p>
+        </motion.div>
+      );
+  }
 }

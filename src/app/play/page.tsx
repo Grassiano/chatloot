@@ -158,7 +158,7 @@ export default function PlayPage() {
             height="20"
             fill="currentColor"
           >
-            <path d="M12 4l1.41 1.41L7.83 11H20v2H7.83l5.58 5.59L12 20l-8-8 8-8z" />
+            <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z" />
           </svg>
         </button>
         <div className="flex-1">

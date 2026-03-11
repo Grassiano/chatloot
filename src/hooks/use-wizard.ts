@@ -328,13 +328,18 @@ export function useWizard(): UseWizardReturn {
 
     return state.highlights
       .filter((h) => h.approved)
-      .map((h) => ({
-        messageText: h.question.messageText,
-        correctAuthor: resolveName(h.question.correctAuthor),
-        options: h.question.options.map(resolveName),
-        timestamp: h.question.timestamp,
-        gmNote: h.gmNoteEdited || h.question.gmNote,
-      }));
+      .map((h) => {
+        const correctAuthor = resolveName(h.question.correctAuthor);
+        return {
+          type: "who_said_it" as const,
+          messageText: h.question.messageText,
+          correctAuthor,
+          correctAnswer: correctAuthor,
+          options: h.question.options.map(resolveName),
+          timestamp: h.question.timestamp,
+          gmNote: h.gmNoteEdited || h.question.gmNote,
+        };
+      });
   }, [state.profiles, state.highlights]);
 
   const getMemberPhotoMap = useCallback((): Map<string, string> => {

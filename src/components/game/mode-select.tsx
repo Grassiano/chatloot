@@ -53,7 +53,7 @@ export function ModeSelect({ onSelect }: ModeSelectProps) {
               }`}
             >
               {!isAvailable && (
-                <span className="absolute left-3 top-3 animate-pulse rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-[#8B949E]">
+                <span className="absolute right-3 top-3 animate-pulse rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-[#8B949E]">
                   בקרוב
                 </span>
               )}

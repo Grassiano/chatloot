@@ -1,5 +1,7 @@
 import type { ParsedChat, ParsedMessage } from "@/lib/parser/types";
+import { isSystemMessage } from "@/lib/parser/parse-chat";
 import type { WhoSaidItQuestion } from "../types";
+import { shuffleArray } from "@/lib/utils";
 
 /**
  * Generate questions for "Who Said It?" mode.
@@ -45,6 +47,9 @@ function getEligibleMessages(chat: ParsedChat): ParsedMessage[] {
     // Skip very long messages (walls of text aren't fun)
     if (msg.message.length > 300) return false;
 
+    // Safety net: skip system messages that slipped through parsing
+    if (isSystemMessage(msg.message)) return false;
+
     // Skip messages that are just links
     if (
       msg.message.startsWith("http://") ||
@@ -82,18 +87,11 @@ function createQuestion(
   const options = shuffleArray([correctAuthor, ...distractors]);
 
   return {
+    type: "who_said_it" as const,
     messageText: msg.message,
     correctAuthor,
+    correctAnswer: correctAuthor,
     options,
     timestamp: msg.date,
   };
-}
-
-function shuffleArray<T>(array: T[]): T[] {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
 }

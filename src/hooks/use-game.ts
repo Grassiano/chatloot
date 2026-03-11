@@ -7,17 +7,26 @@ import type {
   GameSettings,
   Player,
   PlayerAnswer,
-  WhoSaidItQuestion,
+  GameQuestion,
   RoundResult,
 } from "@/lib/game/types";
 import { DEFAULT_SETTINGS, PLAYER_COLORS } from "@/lib/game/types";
-import { generateWhoSaidItQuestions } from "@/lib/game/modes/who-said-it";
+import type { WhoSaidItQuestion } from "@/lib/game/types";
+import { generateMixedQuestions } from "@/lib/game/question-mixer";
 import { calculateScore } from "@/lib/game/scoring";
+
+/** Determine if scoreboard should auto-show after a given round */
+export function shouldShowScores(round: number, total: number): boolean {
+  if (round >= total) return false; // final results handle last round
+  if (round % 3 === 0) return true; // every 3 rounds
+  if (round === total - 1) return true; // before last round
+  return false;
+}
 
 interface UseGameReturn {
   state: GameState;
   /** Initialize the game with parsed chat data. Optionally pass AI-generated questions. */
-  initGame: (chat: ParsedChat, settings?: Partial<GameSettings>, aiQuestions?: WhoSaidItQuestion[]) => void;
+  initGame: (chat: ParsedChat, settings?: Partial<GameSettings>, aiQuestions?: GameQuestion[]) => void;
   /** Add a player to the game */
   addPlayer: (name: string) => Player;
   /** Remove a player */
@@ -52,23 +61,30 @@ const INITIAL_STATE: GameState = {
 
 export function useGame(): UseGameReturn {
   const [state, setState] = useState<GameState>(INITIAL_STATE);
-  const questionsRef = useRef<WhoSaidItQuestion[]>([]);
+  const questionsRef = useRef<GameQuestion[]>([]);
   const roundStartRef = useRef<number>(0);
   const playerCountRef = useRef<number>(0);
   const chatRef = useRef<ParsedChat | null>(null);
+  const settingsRef = useRef<Partial<GameSettings> | undefined>(undefined);
 
   const initGame = useCallback(
-    (chat: ParsedChat, settings?: Partial<GameSettings>, aiQuestions?: WhoSaidItQuestion[]) => {
+    (chat: ParsedChat, settings?: Partial<GameSettings>, aiQuestions?: GameQuestion[]) => {
       const merged = { ...DEFAULT_SETTINGS, ...settings };
 
-      // Store chat so restartGame can re-use it
+      // Store chat + settings so restartGame can re-use them
       chatRef.current = chat;
+      settingsRef.current = settings;
 
-      // Use AI questions if provided, otherwise fall back to random
-      const questions =
-        aiQuestions && aiQuestions.length > 0
-          ? aiQuestions
-          : generateWhoSaidItQuestions(chat, merged.totalRounds);
+      // Use mixer to generate a variety of question types
+      // AI questions (WhoSaidItQuestion[]) are passed through as the core pool
+      const whoSaidItQuestions = aiQuestions?.filter(
+        (q): q is WhoSaidItQuestion => q.type === "who_said_it"
+      );
+      const questions = generateMixedQuestions(
+        chat,
+        merged.totalRounds,
+        whoSaidItQuestions
+      );
       questionsRef.current = questions;
 
       // Adjust total rounds to available questions
@@ -154,7 +170,7 @@ export function useGame(): UseGameReturn {
         const question = prev.currentQuestion;
         if (!question) return prev;
 
-        const isCorrect = answer === question.correctAuthor;
+        const isCorrect = answer === question.correctAnswer;
         const player = prev.players.find((p) => p.id === playerId);
         if (!player) return prev;
 
@@ -240,7 +256,7 @@ export function useGame(): UseGameReturn {
 
   const restartGame = useCallback(() => {
     if (!chatRef.current) return;
-    initGame(chatRef.current);
+    initGame(chatRef.current, settingsRef.current);
   }, [initGame]);
 
   const reset = useCallback(() => {

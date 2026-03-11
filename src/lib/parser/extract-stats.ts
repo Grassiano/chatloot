@@ -14,11 +14,17 @@ const DAY_NAMES_HE = [
   "שבת",
 ];
 
+interface ExtendedStats extends MemberStats {
+  _hourCounts: number[];
+  _dayCounts: number[];
+  _emojiMap: Map<string, number>;
+}
+
 export function extractStats(
   messages: ParsedMessage[],
   members: ChatMember[]
 ): ChatStats {
-  const memberStatsMap = new Map<string, MemberStats>();
+  const memberStatsMap = new Map<string, ExtendedStats>();
   let mediaCount = 0;
   let systemMessageCount = 0;
 
@@ -27,7 +33,7 @@ export function extractStats(
     memberStatsMap.set(member.displayName, createEmptyStats());
   }
 
-  // Process each message
+  // Single pass over all messages — accumulate everything at once
   for (const msg of messages) {
     if (!msg.author) {
       systemMessageCount++;
@@ -50,62 +56,50 @@ export function extractStats(
         stats.longestMessage = msg.message;
       }
 
-      // Count emojis
+      // Count emojis — accumulate per-member in single pass
       const emojis = msg.message.match(EMOJI_REGEX) ?? [];
       stats.emojiCount += emojis.length;
+      for (const emoji of emojis) {
+        stats._emojiMap.set(emoji, (stats._emojiMap.get(emoji) ?? 0) + 1);
+      }
     }
 
-    // Time of day distribution
+    // Time of day distribution + hour/day counts
     const hour = msg.date.getHours();
+    const day = msg.date.getDay();
+    stats._hourCounts[hour]++;
+    stats._dayCounts[day]++;
+
     if (hour >= 0 && hour < 5) stats.nightMessages++;
     else if (hour >= 5 && hour < 12) stats.morningMessages++;
     else if (hour >= 12 && hour < 18) stats.afternoonMessages++;
     else stats.eveningMessages++;
   }
 
-  // Calculate derived stats
-  for (const [, stats] of memberStatsMap) {
+  // Derive final stats from accumulated data — no second pass needed
+  const finalMap = new Map<string, MemberStats>();
+
+  for (const [name, stats] of memberStatsMap) {
     if (stats.textMessages > 0) {
       stats.averageMessageLength = Math.round(
         stats.averageMessageLength / stats.textMessages
       );
     }
-  }
 
-  // Calculate most active hour & day per member
-  for (const member of members) {
-    const memberMessages = messages.filter(
-      (m) => m.author === member.displayName
-    );
-    const stats = memberStatsMap.get(member.displayName);
-    if (!stats || memberMessages.length === 0) continue;
-
-    // Most active hour
-    const hourCounts = new Array(24).fill(0);
-    const dayCounts = new Array(7).fill(0);
-
-    for (const msg of memberMessages) {
-      hourCounts[msg.date.getHours()]++;
-      dayCounts[msg.date.getDay()]++;
-    }
-
-    stats.mostActiveHour = hourCounts.indexOf(Math.max(...hourCounts));
+    // Most active hour & day
+    stats.mostActiveHour = stats._hourCounts.indexOf(Math.max(...stats._hourCounts));
     stats.mostActiveDay =
-      DAY_NAMES_HE[dayCounts.indexOf(Math.max(...dayCounts))];
+      DAY_NAMES_HE[stats._dayCounts.indexOf(Math.max(...stats._dayCounts))];
 
     // Top emojis
-    const emojiMap = new Map<string, number>();
-    for (const msg of memberMessages) {
-      if (msg.author === null) continue;
-      const emojis = msg.message.match(EMOJI_REGEX) ?? [];
-      for (const emoji of emojis) {
-        emojiMap.set(emoji, (emojiMap.get(emoji) ?? 0) + 1);
-      }
-    }
-    stats.topEmojis = Array.from(emojiMap.entries())
+    stats.topEmojis = Array.from(stats._emojiMap.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([emoji, count]) => ({ emoji, count }));
+
+    // Strip internal fields for the final output
+    const { _hourCounts: _, _dayCounts: __, _emojiMap: ___, ...memberStats } = stats;
+    finalMap.set(name, memberStats);
   }
 
   // Date range
@@ -122,11 +116,11 @@ export function extractStats(
     dateRange,
     mediaCount,
     systemMessageCount,
-    members: memberStatsMap,
+    members: finalMap,
   };
 }
 
-function createEmptyStats(): MemberStats {
+function createEmptyStats(): ExtendedStats {
   return {
     totalMessages: 0,
     textMessages: 0,
@@ -142,5 +136,8 @@ function createEmptyStats(): MemberStats {
     morningMessages: 0,
     afternoonMessages: 0,
     eveningMessages: 0,
+    _hourCounts: new Array(24).fill(0),
+    _dayCounts: new Array(7).fill(0),
+    _emojiMap: new Map(),
   };
 }

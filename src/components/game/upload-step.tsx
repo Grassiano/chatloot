@@ -217,21 +217,22 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
                         <div className="absolute inset-0 rounded-full bg-[#00A884]" />
                       )}
                       {isCurrent && (
-                        <motion.div
-                          key={`bar-${stage}`}
-                          className="absolute inset-y-0 left-0 rounded-full bg-[#00A884]"
-                          initial={{ width: "5%" }}
-                          animate={{
-                            width: extractionProgress?.total
-                              ? `${fillPercent}%`
-                              : ["5%", "60%", "90%", "60%"],
-                          }}
-                          transition={
-                            extractionProgress?.total
-                              ? { duration: 0.3, ease: "easeOut" }
-                              : { duration: 2.5, repeat: Infinity, ease: "easeInOut" }
-                          }
-                        />
+                        extractionProgress?.total ? (
+                          <motion.div
+                            key={`bar-${stage}`}
+                            className="absolute inset-y-0 left-0 rounded-full bg-[#00A884]"
+                            initial={{ width: "5%" }}
+                            animate={{ width: `${fillPercent}%` }}
+                            transition={{ duration: 0.3, ease: "easeOut" }}
+                          />
+                        ) : (
+                          <motion.div
+                            key={`shimmer-${stage}`}
+                            className="absolute inset-y-0 w-[40%] rounded-full bg-gradient-to-r from-transparent via-[#00A884] to-transparent"
+                            animate={{ x: ["-100%", "350%"] }}
+                            transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                          />
+                        )
                       )}
                     </div>
                   );

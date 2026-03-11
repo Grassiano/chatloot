@@ -21,7 +21,6 @@ export function PhotoMatcher({
   onAssign,
   onDone,
 }: PhotoMatcherProps) {
-  // Start showing photos immediately — scanning runs in background
   const [scanStatus, setScanStatus] = useState<"scanning" | "done" | "failed">(
     "scanning"
   );
@@ -30,15 +29,7 @@ export function PhotoMatcher({
     total: smartPhotos.length,
     stage: "loading_model",
   });
-  const [scannedPhotos, setScannedPhotos] = useState<ScannedPhoto[]>(() =>
-    // Start with unscanned versions so user can begin matching immediately
-    smartPhotos.map((p) => ({
-      ...p,
-      faces: [],
-      faceCount: 0,
-      isProfileCandidate: false,
-    }))
-  );
+  const [scannedPhotos, setScannedPhotos] = useState<ScannedPhoto[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [assigned, setAssigned] = useState<Map<string, string>>(new Map());
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
@@ -53,16 +44,16 @@ export function PhotoMatcher({
     };
   }, []);
 
-  // Start face scanning in background on mount
+  // Start face scanning on mount — only show photos with faces
   useEffect(() => {
     if (scanStarted.current) return;
     scanStarted.current = true;
 
     scanPhotos(smartPhotos, setScanProgress)
       .then((results) => {
-        if (results.length > 0) {
-          setScannedPhotos(results);
-        }
+        // Only keep photos that actually have faces
+        const withFaces = results.filter((p) => p.faceCount > 0);
+        setScannedPhotos(withFaces);
         setScanStatus("done");
       })
       .catch(() => {
@@ -79,22 +70,21 @@ export function PhotoMatcher({
     [scannedPhotos, assigned, skipped]
   );
   const current = visiblePhotos[currentIdx];
-  const isLast = currentIdx >= visiblePhotos.length - 1;
 
-  // Exit when no photos remain
+  // Count how many unique members have been assigned + fast lookup Set
+  const assignedMembers = useMemo(
+    () => new Set(assigned.values()),
+    [assigned]
+  );
+  const assignedMemberCount = assignedMembers.size;
+
+  // Exit when no photos remain (after scanning is done)
   useEffect(() => {
+    if (scanStatus !== "done") return;
     if (visiblePhotos.length === 0 && scannedPhotos.length > 0) {
       onDone();
     }
-  }, [visiblePhotos.length, scannedPhotos.length, onDone]);
-
-  const advance = useCallback(() => {
-    if (isLast || visiblePhotos.length <= 1) {
-      onDone();
-    } else {
-      setCurrentIdx((i) => Math.min(i + 1, visiblePhotos.length - 1));
-    }
-  }, [isLast, onDone, visiblePhotos.length]);
+  }, [visiblePhotos.length, scannedPhotos.length, scanStatus, onDone]);
 
   const handleSkip = useCallback(() => {
     if (!current) return;
@@ -103,7 +93,6 @@ export function PhotoMatcher({
     newSkipped.add(current.media.url);
     setSkipped(newSkipped);
 
-    // Adjust index after skip
     const nextVisible = scannedPhotos.filter(
       (p) =>
         !assigned.has(p.media.url) && !newSkipped.has(p.media.url)
@@ -120,7 +109,6 @@ export function PhotoMatcher({
       if (!current) return;
       hapticSuccess();
 
-      // Assign this photo
       onAssign(displayName, current.media.url);
 
       const newAssigned = new Map(assigned);
@@ -152,7 +140,6 @@ export function PhotoMatcher({
 
       // Advance after brief delay
       const t2 = setTimeout(() => {
-        // Recalculate visible photos after assignment
         const nextVisible = scannedPhotos.filter(
           (p) =>
             !newAssigned.has(p.media.url) && !skipped.has(p.media.url)
@@ -168,11 +155,65 @@ export function PhotoMatcher({
     [current, assigned, skipped, scannedPhotos, onAssign, onDone]
   );
 
-  // No photos at all
-  if (smartPhotos.length === 0) {
-    onDone();
-    return null;
+  // No photos at all — exit via effect (not during render)
+  const hasNoPhotos = smartPhotos.length === 0;
+  useEffect(() => {
+    if (hasNoPhotos) onDone();
+  }, [hasNoPhotos, onDone]);
+
+  if (hasNoPhotos) return null;
+
+  // --- Scanning state: show loading overlay ---
+  if (scanStatus === "scanning") {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0D1117]"
+      >
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+          className="mb-6 text-[48px]"
+        >
+          📷
+        </motion.div>
+        <p className="mb-2 text-[18px] font-bold text-white">
+          סורק פנים בתמונות...
+        </p>
+        <p className="mb-6 text-[14px] text-[#8B949E]">
+          {scanProgress.current} / {scanProgress.total}
+        </p>
+        {/* Progress bar */}
+        <div className="mx-auto h-1.5 w-48 overflow-hidden rounded-full bg-[#21262D]">
+          <motion.div
+            className="h-full rounded-full bg-[#00A884]"
+            animate={{
+              width: scanProgress.total > 0
+                ? `${(scanProgress.current / scanProgress.total) * 100}%`
+                : "0%",
+            }}
+            transition={{ duration: 0.3 }}
+          />
+        </div>
+        <button
+          onClick={onDone}
+          className="mt-8 rounded-full border border-white/10 bg-white/5 px-6 py-2.5 text-[14px] font-medium text-[#8B949E] transition-all hover:border-white/20 hover:bg-white/10 hover:text-white"
+        >
+          דלגו על שלב זה
+        </button>
+      </motion.div>
+    );
   }
+
+  // Scanning failed or no faces found — exit via effect (not during render)
+  const scanFailed = scanStatus === "failed" || (scanStatus === "done" && scannedPhotos.length === 0);
+  useEffect(() => {
+    if (scanFailed) onDone();
+  }, [scanFailed, onDone]);
+
+  if (scanFailed) return null;
 
   // All photos handled
   if (visiblePhotos.length === 0 || !current) {
@@ -180,7 +221,6 @@ export function PhotoMatcher({
   }
 
   const assignedTo = assigned.get(current.media.url);
-  const scannedCurrent = current as ScannedPhoto;
 
   return (
     <motion.div
@@ -200,16 +240,11 @@ export function PhotoMatcher({
         <div className="text-center">
           <h2 className="text-[16px] font-bold text-white">מי בתמונה?</h2>
           <p className="text-[12px] text-[#8B949E]">
-            {currentIdx + 1} / {visiblePhotos.length}
+            {assignedMemberCount} / {profiles.length} חברים זוהו
           </p>
         </div>
-        {/* Scan status indicator */}
-        <div className="flex items-center gap-1.5">
-          {scanStatus === "scanning" && (
-            <span className="text-[11px] text-[#8B949E]">
-              מעבד...
-            </span>
-          )}
+        <div className="text-[12px] text-[#8B949E]">
+          {currentIdx + 1} / {visiblePhotos.length}
         </div>
       </div>
 
@@ -226,7 +261,7 @@ export function PhotoMatcher({
       </div>
 
       {/* Photo display */}
-      <div className="flex flex-1 flex-col items-center justify-center overflow-hidden px-4 py-4">
+      <div className="flex flex-1 flex-col items-center justify-center overflow-hidden px-4 py-3">
         <AnimatePresence mode="wait">
           <motion.div
             key={current.media.url}
@@ -234,7 +269,7 @@ export function PhotoMatcher({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.2 }}
-            className="relative max-h-[45vh] w-full max-w-sm overflow-hidden rounded-2xl ring-1 ring-white/10 shadow-2xl"
+            className="relative max-h-[50vh] w-full max-w-sm overflow-hidden rounded-2xl ring-1 ring-white/10 shadow-2xl"
           >
             <img
               src={current.media.url}
@@ -245,14 +280,12 @@ export function PhotoMatcher({
             />
 
             {/* Face count badge */}
-            {scannedCurrent.faceCount > 0 && !assignedTo && (
+            {current.faceCount > 1 && !assignedTo && (
               <div
-                className="absolute left-3 top-3 rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-md"
+                className="absolute right-3 top-3 rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-md"
                 style={{ WebkitBackdropFilter: "blur(12px)" }}
               >
-                {scannedCurrent.faceCount === 1
-                  ? "פרצוף אחד"
-                  : `${scannedCurrent.faceCount} פרצופים`}
+                {current.faceCount} פרצופים
               </div>
             )}
 
@@ -269,26 +302,6 @@ export function PhotoMatcher({
             )}
           </motion.div>
         </AnimatePresence>
-
-        {/* Action buttons — right below the photo */}
-        {!assignedTo && (
-          <div className="mt-3 flex items-center gap-3">
-            {/* Skip photo */}
-            <button
-              onClick={advance}
-              className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[13px] font-medium text-[#8B949E] transition-all hover:border-white/20 hover:bg-white/10 hover:text-white"
-            >
-              דלג
-            </button>
-            {/* Not in group */}
-            <button
-              onClick={handleSkip}
-              className="rounded-full border border-[#FF4757]/30 bg-[#FF4757]/10 px-4 py-2 text-[13px] font-medium text-[#FF4757] transition-all hover:border-[#FF4757]/50 hover:bg-[#FF4757]/20"
-            >
-              לא מהקבוצה
-            </button>
-          </div>
-        )}
 
         {/* Sender hint */}
         {current.sender && !assignedTo && (
@@ -318,36 +331,56 @@ export function PhotoMatcher({
         </AnimatePresence>
       </div>
 
-      {/* Member chips — horizontal scroll, sender highlighted */}
+      {/* Member grid — 2 columns + skip button */}
       <div className="border-t border-[#21262D] px-3 pb-6 pt-3">
-        <div className="flex gap-2 overflow-x-auto pb-2" dir="rtl">
+        <div className="grid grid-cols-2 gap-2" dir="rtl">
           {profiles.map((profile) => {
             const isSender =
               current.sender === profile.displayName ||
               current.sender === profile.nickname;
+            const isAssignedElsewhere = assignedMembers.has(profile.displayName);
 
             return (
               <motion.button
                 key={profile.displayName}
-                whileTap={{ scale: 0.92 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => handleAssign(profile.displayName)}
-                className={`flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 transition-all ${
+                className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-right transition-all ${
                   isSender
                     ? "border-[#00A884]/50 bg-[#00A884]/20 shadow-[0_0_12px_rgba(0,168,132,0.3)]"
-                    : "border-white/10 bg-white/10 backdrop-blur-md hover:border-white/20 hover:bg-white/15"
-                } active:bg-[#00A884]/30`}
-                style={{ WebkitBackdropFilter: "blur(12px)" }}
+                    : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
+                }`}
               >
-                <span className="text-[16px]">
-                  {profile.personalityEmoji}
-                </span>
-                <span className="whitespace-nowrap text-[14px] font-medium text-white">
+                {profile.photoUrl ? (
+                  <img
+                    src={profile.photoUrl}
+                    alt={profile.displayName}
+                    className="h-8 w-8 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-[16px]">
+                    {profile.personalityEmoji}
+                  </span>
+                )}
+                <span className="min-w-0 truncate text-[13px] font-medium text-white">
                   {profile.nickname}
                 </span>
+                {isAssignedElsewhere && (
+                  <span className="mr-auto text-[11px] text-[#00A884]">✓</span>
+                )}
               </motion.button>
             );
           })}
         </div>
+        {/* Single skip button */}
+        {!assignedTo && (
+          <button
+            onClick={handleSkip}
+            className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 py-2.5 text-[13px] font-medium text-[#8B949E] transition-all hover:border-white/20 hover:bg-white/10 hover:text-white"
+          >
+            דלג על התמונה
+          </button>
+        )}
       </div>
     </motion.div>
   );

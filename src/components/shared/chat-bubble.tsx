@@ -23,11 +23,11 @@ export function ChatBubble({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`relative max-w-sm rounded-2xl rounded-tr-sm bg-card p-3 shadow-sm ${className}`}
+      className={`relative max-w-sm rounded-2xl rounded-tl-sm bg-card p-3 shadow-sm ${className}`}
     >
       {/* Chat bubble tail */}
-      <div className="absolute -right-2 top-0 h-4 w-4 overflow-hidden">
-        <div className="h-4 w-4 origin-bottom-left rotate-45 bg-card" />
+      <div className="absolute -left-2 top-0 h-4 w-4 overflow-hidden">
+        <div className="h-4 w-4 origin-bottom-right -rotate-45 bg-card" />
       </div>
 
       {showAuthor && author && (

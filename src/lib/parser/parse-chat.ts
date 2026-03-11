@@ -236,67 +236,37 @@ function isEncryptionNotice(message: string): boolean {
   );
 }
 
+// Pre-compiled regex for system author detection — single test vs 30+ includes() calls
+const SYSTEM_AUTHOR_PATTERNS = [
+  "end-to-end encrypted", "messages and calls", "you were added",
+  "changed the subject", "changed the group", "changed this group",
+  "created group", "security code changed", "this message was deleted",
+  "you deleted this message", "missed voice call", "missed video call",
+  "disappearing messages", "turned on disappearing", "turned off disappearing",
+  "joined using", "waiting for this message", "message timer",
+  "blocked this contact", "unblocked this contact", "business account",
+  "your security code", "you changed this group",
+  "this chat is with a business", "tap for more info",
+  "הודעות ושיחות", "מוצפנות מקצה", "הוספת", "שינה את", "שינתה את",
+  "יצר את הקבוצה", "יצרה את הקבוצה", "קוד האבטחה השתנה",
+  "הודעה זו נמחקה", "מחקת הודעה זו", "שיחת קול שלא נענתה",
+  "שיחת וידאו שלא נענתה", "הודעות נעלמות",
+  "הפעיל הודעות נעלמות", "הפעילה הודעות נעלמות",
+  "כיבה הודעות נעלמות", "כיבתה הודעות נעלמות",
+  "ממתין להודעה זו", "חשבון עסקי", "הקש למידע נוסף", "קוד האבטחה שלך",
+];
+
+const SYSTEM_AUTHOR_REGEX = new RegExp(
+  SYSTEM_AUTHOR_PATTERNS.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"),
+  "i"
+);
+
 /** Filter out WhatsApp system pseudo-authors that the parser sometimes misidentifies */
 function isSystemAuthor(author: string): boolean {
-  // Phone-number-only names (e.g. "+972 50-123-4567")
-  if (/^[\d\s+\-().]+$/.test(author)) return true;
-
   // Very short "authors" that are likely parsing artifacts (single char, tilde)
   if (author.trim().length <= 1) return true;
 
-  const lower = author.toLowerCase();
-  const systemPatterns = [
-    // English system strings
-    "end-to-end encrypted",
-    "messages and calls",
-    "you were added",
-    "changed the subject",
-    "changed the group",
-    "changed this group",
-    "created group",
-    "security code changed",
-    "this message was deleted",
-    "you deleted this message",
-    "missed voice call",
-    "missed video call",
-    "disappearing messages",
-    "turned on disappearing",
-    "turned off disappearing",
-    "joined using",
-    "waiting for this message",
-    "message timer",
-    "blocked this contact",
-    "unblocked this contact",
-    "business account",
-    "your security code",
-    "you changed this group",
-    "this chat is with a business",
-    "tap for more info",
-    // Hebrew system strings
-    "הודעות ושיחות",
-    "מוצפנות מקצה",
-    "הוספת",
-    "שינה את",
-    "שינתה את",
-    "יצר את הקבוצה",
-    "יצרה את הקבוצה",
-    "קוד האבטחה השתנה",
-    "הודעה זו נמחקה",
-    "מחקת הודעה זו",
-    "שיחת קול שלא נענתה",
-    "שיחת וידאו שלא נענתה",
-    "הודעות נעלמות",
-    "הפעיל הודעות נעלמות",
-    "הפעילה הודעות נעלמות",
-    "כיבה הודעות נעלמות",
-    "כיבתה הודעות נעלמות",
-    "ממתין להודעה זו",
-    "חשבון עסקי",
-    "הקש למידע נוסף",
-    "קוד האבטחה שלך",
-  ];
-
-  return systemPatterns.some((p) => lower.includes(p));
+  return SYSTEM_AUTHOR_REGEX.test(author);
 }
 
 function isMediaOmitted(message: string): boolean {
@@ -309,57 +279,42 @@ function isMediaOmitted(message: string): boolean {
   );
 }
 
+// Pre-compiled regex for system message detection
+const SYSTEM_MSG_PATTERNS = [
+  " added ", " removed ", " left the group", "joined using this group",
+  "joined the group", "was added", "was removed", "created group",
+  "changed the subject", "changed the group", "changed this group",
+  "you're now an admin", "is no longer an admin",
+  "turned on disappearing", "turned off disappearing", "pinned a message",
+  "this message was deleted", "you deleted this message", "deleted this message",
+  "messages and calls are end-to-end encrypted",
+  "הוסיף את", "הוסיפה את", "הוסיף/ה את", "הוסר/ה",
+  "הוסר מהקבוצה", "הוסרה מהקבוצה",
+  "הצטרף באמצעות", "הצטרפה באמצעות", "הצטרף/ה באמצעות",
+  "הצטרף לקבוצה", "הצטרפה לקבוצה", "הצטרף/ה לקבוצה",
+  "עזב את הקבוצה", "עזבה את הקבוצה",
+  "הוזמן/ה לקבוצה", "צורף/ה לקבוצה", "צורף לקבוצה", "צורפה לקבוצה",
+  "שינה את נושא", "שינתה את נושא", "שינה את סמל", "שינתה את סמל",
+  "את/ה מנהל/ת עכשיו", "כבר לא מנהל",
+  "הפעיל הודעות נעלמות", "הפעילה הודעות נעלמות",
+  "כיבה הודעות נעלמות", "כיבתה הודעות נעלמות",
+  "הצמיד/ה הודעה", "הצמיד הודעה", "הצמידה הודעה",
+  "הודעה זו נמחקה", "מחקת הודעה זו", "ההודעות והשיחות מוצפנות",
+  "יצר את הקבוצה", "יצרה את הקבוצה", "יצר/ה את הקבוצה",
+];
+
+const SYSTEM_MSG_REGEX = new RegExp(
+  SYSTEM_MSG_PATTERNS.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"),
+  "i"
+);
+
+const SYSTEM_MSG_EXACT = new Set(["left", "עזב", "עזבה"]);
+
 /** Filter out system-generated messages even when they have a real author */
-function isSystemMessage(message: string): boolean {
+export function isSystemMessage(message: string): boolean {
   const lower = message.toLowerCase();
-
-  // Exact matches for very short system messages
-  const exactMatches = ["left", "עזב", "עזבה"];
-  if (exactMatches.includes(lower.trim())) return true;
-
-  const patterns = [
-    // English
-    " added ",
-    " removed ",
-    " left the group",
-    "joined using this group",
-    "changed the subject",
-    "changed the group",
-    "changed this group",
-    "created group",
-    "you're now an admin",
-    "is no longer an admin",
-    "turned on disappearing",
-    "turned off disappearing",
-    "was added",
-    "was removed",
-    // Hebrew
-    "הוסיף את",
-    "הוסיפה את",
-    "הוסיף/ה את",
-    "הוסר/ה",
-    "הוסר מהקבוצה",
-    "הוסרה מהקבוצה",
-    "הצטרף באמצעות",
-    "הצטרפה באמצעות",
-    "עזב את הקבוצה",
-    "עזבה את הקבוצה",
-    "שינה את נושא",
-    "שינתה את נושא",
-    "שינה את סמל",
-    "שינתה את סמל",
-    "את/ה מנהל/ת עכשיו",
-    "כבר לא מנהל",
-    "הפעיל הודעות נעלמות",
-    "הפעילה הודעות נעלמות",
-    "כיבה הודעות נעלמות",
-    "כיבתה הודעות נעלמות",
-    "הוזמן/ה לקבוצה",
-    "צורף/ה לקבוצה",
-    "הצטרף/ה באמצעות",
-  ];
-
-  return patterns.some((p) => lower.includes(p));
+  if (SYSTEM_MSG_EXACT.has(lower.trim())) return true;
+  return SYSTEM_MSG_REGEX.test(lower);
 }
 
 export function isMediaMessage(message: string): boolean {

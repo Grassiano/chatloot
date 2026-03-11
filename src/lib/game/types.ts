@@ -30,17 +30,53 @@ export interface Player {
   streak: number;
 }
 
+// --- Question Types ---
+
+export type QuestionType = "who_said_it" | "stat_trivia" | "emoji_match" | "true_false";
+
 export interface WhoSaidItQuestion {
+  type: "who_said_it";
   messageText: string;
   correctAuthor: string;
-  options: string[]; // 4 options including correct
+  correctAnswer: string;
+  options: string[];
   timestamp: Date;
   gmNote?: string;
 }
 
+export interface StatTriviaQuestion {
+  type: "stat_trivia";
+  prompt: string;
+  statValue: string;
+  correctAnswer: string;
+  options: string[];
+  gmNote?: string;
+}
+
+export interface EmojiMatchQuestion {
+  type: "emoji_match";
+  prompt: string;
+  targetEmoji?: string;
+  targetMember?: string;
+  correctAnswer: string;
+  options: string[];
+  gmNote?: string;
+}
+
+export interface TrueFalseQuestion {
+  type: "true_false";
+  statement: string;
+  isTrue: boolean;
+  correctAnswer: string;
+  options: ["נכון", "לא נכון"];
+  gmNote?: string;
+}
+
+export type GameQuestion = WhoSaidItQuestion | StatTriviaQuestion | EmojiMatchQuestion | TrueFalseQuestion;
+
 export interface RoundResult {
   roundNumber: number;
-  question: WhoSaidItQuestion;
+  question: GameQuestion;
   answers: Map<string, PlayerAnswer>;
 }
 
@@ -57,7 +93,7 @@ export interface GameState {
   phase: GamePhase;
   players: Player[];
   currentRound: number;
-  currentQuestion: WhoSaidItQuestion | null;
+  currentQuestion: GameQuestion | null;
   roundResults: RoundResult[];
   roundStartTime: number | null;
 }

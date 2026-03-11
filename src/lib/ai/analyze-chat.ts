@@ -1,7 +1,8 @@
 import type { ParsedChat } from "@/lib/parser/types";
 import type { WhoSaidItQuestion } from "@/lib/game/types";
-import type { AnalyzeResponse } from "./types";
+import { AnalyzeResponseSchema } from "./types";
 import { sampleMessagesForAnalysis } from "./sample-messages";
+import { shuffleArray } from "@/lib/utils";
 
 export interface AnalysisResult {
   questions: WhoSaidItQuestion[];
@@ -49,7 +50,12 @@ export async function analyzeChat(
       return { questions: [], scores: [], memberSummaries: {}, isAiEnhanced: false };
     }
 
-    const data: AnalyzeResponse = await response.json();
+    const raw = await response.json();
+    const parsed = AnalyzeResponseSchema.safeParse(raw);
+    if (!parsed.success) {
+      return { questions: [], scores: [], memberSummaries: {}, isAiEnhanced: false };
+    }
+    const data = parsed.data;
 
     const questions: WhoSaidItQuestion[] = [];
     const scores: Array<{ score: number; reason: string }> = [];
@@ -68,8 +74,10 @@ export async function analyzeChat(
       ]);
 
       questions.push({
+        type: "who_said_it",
         messageText: original.message,
         correctAuthor: original.author,
+        correctAnswer: original.author,
         options,
         timestamp: new Date(original.date),
         gmNote: ranked.gmNote,
@@ -95,13 +103,4 @@ export async function analyzeChat(
   } catch {
     return { questions: [], scores: [], memberSummaries: {}, isAiEnhanced: false };
   }
-}
-
-function shuffleArray<T>(array: T[]): T[] {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
 }

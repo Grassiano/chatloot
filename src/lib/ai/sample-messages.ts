@@ -1,4 +1,5 @@
 import type { ParsedChat, ParsedMessage } from "@/lib/parser/types";
+import { shuffleArray } from "@/lib/utils";
 
 const MAX_MESSAGES = 200;
 const MIN_LENGTH = 8;
@@ -83,13 +84,4 @@ function toIndexed(msg: ParsedMessage, idx: number): IndexedMessage {
     message: msg.message,
     date: msg.date.toISOString(),
   };
-}
-
-function shuffleArray<T>(array: T[]): T[] {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
 }
