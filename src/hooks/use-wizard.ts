@@ -91,6 +91,11 @@ export function useWizard(): UseWizardReturn {
           mostActiveHour: stats?.mostActiveHour ?? 0,
           nightMessages: stats?.nightMessages ?? 0,
           mediaMessages: stats?.mediaMessages ?? 0,
+          responseTimeAvg: stats?.responseTimeAvg ?? 0,
+          burstCount: stats?.burstCount ?? 0,
+          longestGhostDays: stats?.longestGhostDays ?? 0,
+          conversationStarts: stats?.conversationStarts ?? 0,
+          topWords: stats?.topWords.slice(0, 3) ?? [],
 
           personalityTitle: personality?.title ?? "חבר הקבוצה",
           personalityEmoji: personality?.emoji ?? "💬",

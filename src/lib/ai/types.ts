@@ -14,6 +14,15 @@ export const AnalyzeMemberSchema = z.object({
   messageCount: z.number(),
   avgMessageLength: z.number(),
   topEmojis: z.array(z.string().max(10)).max(10),
+  topWords: z.array(z.string().max(50)).max(5).optional(),
+  burstCount: z.number().optional(),
+  questionCount: z.number().optional(),
+  deletedCount: z.number().optional(),
+  forwardedCount: z.number().optional(),
+  conversationStarts: z.number().optional(),
+  longestGhostDays: z.number().optional(),
+  nightMessages: z.number().optional(),
+  personalityTitle: z.string().max(100).optional(),
 });
 
 /** Full request to /api/analyze */

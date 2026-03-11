@@ -222,6 +222,7 @@ export default function LandingPage() {
                   width="22"
                   height="22"
                   fill="currentColor"
+                  className=""
                 >
                   <path d="M1.101 21.757 23.8 12.028 1.101 2.3l.011 7.912 13.239 1.816L1.112 13.845z" />
                 </svg>

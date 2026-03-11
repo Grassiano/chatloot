@@ -16,6 +16,7 @@ import { FinalResults } from "@/components/game/final-results";
 import { GmSetup } from "@/components/wizard/gm-setup";
 import { ModeSelect } from "@/components/game/mode-select";
 import { useRouter } from "next/navigation";
+import { getMuted, setMuted } from "@/lib/sounds";
 
 type FlowPhase = "upload" | "analyzing" | "wizard" | "mode-select" | "game";
 
@@ -124,6 +125,17 @@ export default function PlayPage() {
     setFlowPhase("game");
   }, [chat, game]);
 
+  const [muted, setMutedState] = useState(false);
+  useEffect(() => {
+    setMutedState(getMuted());
+  }, []);
+
+  function toggleMute() {
+    const next = !muted;
+    setMutedState(next);
+    setMuted(next);
+  }
+
   const { phase } = game.state;
   const inGame = flowPhase === "game";
 
@@ -180,6 +192,24 @@ export default function PlayPage() {
             AI
           </div>
         )}
+        <button
+          onClick={toggleMute}
+          aria-label={muted ? "הפעל צלילים" : "השתק צלילים"}
+          className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-white/10"
+        >
+          {muted ? (
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <line x1="23" y1="9" x2="17" y2="15" />
+              <line x1="17" y1="9" x2="23" y2="15" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+            </svg>
+          )}
+        </button>
       </header>
 
       <main
@@ -271,6 +301,7 @@ export default function PlayPage() {
               key="final"
               game={game}
               memberPhotos={memberPhotos}
+              groupName={chat?.groupName}
               onNewGame={() => {
                 game.reset();
                 setChat(null);

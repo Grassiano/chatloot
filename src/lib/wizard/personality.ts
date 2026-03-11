@@ -1,155 +1,260 @@
 import type { ChatMember, MemberStats, ParsedChat } from "@/lib/parser/types";
-import { isMediaMessage } from "@/lib/parser/parse-chat";
+import { isMediaMessage, isSystemMessage } from "@/lib/parser/parse-chat";
 
-interface Personality {
+export interface Personality {
   title: string;
   emoji: string;
   summary: string;
 }
 
+interface PersonalityTemplate {
+  key: string;
+  title: string;
+  emoji: string;
+  getValue: (s: MemberStats) => number;
+  minThreshold: number;
+  summaryFn: (s: MemberStats) => string;
+  isInverse?: boolean; // true = lowest value wins (e.g. ghost)
+}
+
+const PERSONALITY_TEMPLATES: PersonalityTemplate[] = [
+  {
+    key: "king",
+    title: "מלך הקבוצה",
+    emoji: "👑",
+    getValue: (s) => s.totalMessages,
+    minThreshold: 0,
+    summaryFn: (s) => `שולט בצ׳אט עם ${s.totalMessages.toLocaleString()} הודעות.`,
+  },
+  {
+    key: "nightOwl",
+    title: "ינשוף הלילה",
+    emoji: "🦉",
+    getValue: (s) => s.nightMessages,
+    minThreshold: 5,
+    summaryFn: (s) => `${s.nightMessages} הודעות אחרי חצות. מי צריך שינה?`,
+  },
+  {
+    key: "emojiKing",
+    title: "מלך האימוג׳י",
+    emoji: "😂",
+    getValue: (s) => s.emojiCount,
+    minThreshold: 10,
+    summaryFn: (s) => {
+      const top = s.topEmojis[0]?.emoji ?? "😂";
+      return `${s.emojiCount} אימוג׳ים, האהוב: ${top}. מדבר בסמיילים.`;
+    },
+  },
+  {
+    key: "philosopher",
+    title: "הפילוסוף",
+    emoji: "📜",
+    getValue: (s) => s.averageMessageLength,
+    minThreshold: 30,
+    summaryFn: (s) => `ממוצע ${s.averageMessageLength} תווים להודעה. כותב מגילות.`,
+  },
+  {
+    key: "photographer",
+    title: "הצלם",
+    emoji: "📸",
+    getValue: (s) => s.mediaMessages,
+    minThreshold: 10,
+    summaryFn: (s) => `${s.mediaMessages} תמונות וסרטונים. מתעד הכל.`,
+  },
+  {
+    key: "spammer",
+    title: "ספאמר מקצועי",
+    emoji: "🔥",
+    getValue: (s) => s.burstCount,
+    minThreshold: 3,
+    summaryFn: (s) => `${s.burstCount} פעמים שלח 5+ הודעות ברצף. אין עצירה.`,
+  },
+  {
+    key: "curious",
+    title: "סקרן כרוני",
+    emoji: "❓",
+    getValue: (s) => s.questionCount,
+    minThreshold: 10,
+    summaryFn: (s) => `${s.questionCount} שאלות. תמיד רוצה לדעת.`,
+  },
+  {
+    key: "deleter",
+    title: "מוחק הראיות",
+    emoji: "🗑️",
+    getValue: (s) => s.deletedCount,
+    minThreshold: 3,
+    summaryFn: (s) => `מחק ${s.deletedCount} הודעות. מה הסתיר?`,
+  },
+  {
+    key: "broadcaster",
+    title: "השדרן",
+    emoji: "📡",
+    getValue: (s) => s.forwardedCount,
+    minThreshold: 5,
+    summaryFn: (s) => `העביר ${s.forwardedCount} הודעות. המקור לכל הסרטונים.`,
+  },
+  {
+    key: "reviver",
+    title: "מחיה המתים",
+    emoji: "⚡",
+    getValue: (s) => s.conversationStarts,
+    minThreshold: 5,
+    summaryFn: (s) => `החיה את הצ׳אט ${s.conversationStarts} פעמים.`,
+  },
+  {
+    key: "vanisher",
+    title: "הנעלם",
+    emoji: "🕵️",
+    getValue: (s) => s.longestGhostDays,
+    minThreshold: 7,
+    summaryFn: (s) => `נעלם ל-${s.longestGhostDays} ימים. חזר כאילו כלום.`,
+  },
+  {
+    key: "linkMaster",
+    title: "מפיץ הלינקים",
+    emoji: "🔗",
+    getValue: (s) => s.linkCount,
+    minThreshold: 5,
+    summaryFn: (s) => `${s.linkCount} לינקים. אנציקלופדיה מהלכת.`,
+  },
+  {
+    key: "perfectionist",
+    title: "הפרפקציוניסט",
+    emoji: "✏️",
+    getValue: (s) => s.editedCount,
+    minThreshold: 3,
+    summaryFn: (s) => `ערך ${s.editedCount} הודעות. כי המילה הנכונה חשובה.`,
+  },
+  {
+    key: "earlyBird",
+    title: "הציפור המוקדמת",
+    emoji: "🐦",
+    getValue: (s) => s.morningMessages,
+    minThreshold: 10,
+    summaryFn: (s) => `${s.morningMessages} הודעות לפני הצהריים. קם מוקדם, כותב מוקדם.`,
+  },
+  {
+    key: "eveningPerson",
+    title: "יצור הערב",
+    emoji: "🌙",
+    getValue: (s) => s.eveningMessages,
+    minThreshold: 10,
+    summaryFn: (s) => `${s.eveningMessages} הודעות בערב. פורח בחושך.`,
+  },
+  {
+    key: "wordsmith",
+    title: "בעל המילים",
+    emoji: "📝",
+    getValue: (s) => s.averageWordsPerMessage,
+    minThreshold: 8,
+    summaryFn: (s) => `ממוצע ${s.averageWordsPerMessage} מילים להודעה. לא חוסך במילים.`,
+  },
+  {
+    key: "ghost",
+    title: "הרוח הרפאים",
+    emoji: "👻",
+    getValue: (s) => s.totalMessages,
+    minThreshold: 0,
+    summaryFn: (s) => `רק ${s.totalMessages} הודעות. אבל כשמופיע — שווה.`,
+    isInverse: true,
+  },
+];
+
 /**
- * Assign personality titles + template summaries based on stats.
- * Each member gets their most distinctive trait.
+ * Assign personality titles using distinctiveness scoring.
+ * Each member gets the trait where they stand out MOST relative to the group.
  */
 export function assignPersonalities(
   members: ChatMember[],
   statsMap: Map<string, MemberStats>
 ): Map<string, Personality> {
   const result = new Map<string, Personality>();
+  const allStats = members
+    .map((m) => statsMap.get(m.displayName))
+    .filter((s): s is MemberStats => s != null);
 
-  // Calculate relative rankings
-  const rankings = members.map((m) => {
-    const s = statsMap.get(m.displayName);
-    return { name: m.displayName, stats: s };
+  if (allStats.length === 0) return result;
+
+  // Compute group averages for each template
+  const groupAvgs = PERSONALITY_TEMPLATES.map((t) => {
+    const values = allStats.map((s) => t.getValue(s));
+    return values.reduce((a, b) => a + b, 0) / values.length;
   });
 
-  // Track which members already got a title (each member gets their most extreme trait)
+  // Score each member for each template (how distinctive they are)
+  const memberScores: Array<{
+    name: string;
+    stats: MemberStats;
+    scores: Array<{ templateIdx: number; score: number }>;
+  }> = [];
+
+  for (const member of members) {
+    const stats = statsMap.get(member.displayName);
+    if (!stats) continue;
+
+    const scores: Array<{ templateIdx: number; score: number }> = [];
+
+    for (let i = 0; i < PERSONALITY_TEMPLATES.length; i++) {
+      const t = PERSONALITY_TEMPLATES[i];
+      const value = t.getValue(stats);
+      const avg = groupAvgs[i];
+
+      // Skip if below minimum threshold
+      if (!t.isInverse && value < t.minThreshold) continue;
+
+      // Score: how far above average (ratio). Ghost (inverse) uses below average.
+      let score: number;
+      if (t.isInverse) {
+        score = avg > 0 ? avg / Math.max(value, 1) : 0;
+      } else {
+        score = avg > 0 ? value / avg : value > 0 ? 10 : 0;
+      }
+
+      scores.push({ templateIdx: i, score });
+    }
+
+    // Sort by score descending — best trait first
+    scores.sort((a, b) => b.score - a.score);
+    memberScores.push({ name: member.displayName, stats, scores });
+  }
+
+  // Greedy assignment: members with most distinctive trait go first
+  const usedTemplates = new Set<number>();
   const assigned = new Set<string>();
 
-  // 1. Most messages → מלך/מלכת הקבוצה
-  const mostMessages = rankings
-    .filter((r) => r.stats)
-    .sort((a, b) => (b.stats?.totalMessages ?? 0) - (a.stats?.totalMessages ?? 0));
+  // Sort members by their best score (most distinctive member first)
+  memberScores.sort((a, b) => {
+    const aTop = a.scores[0]?.score ?? 0;
+    const bTop = b.scores[0]?.score ?? 0;
+    return bTop - aTop;
+  });
 
-  if (mostMessages[0]?.stats) {
-    const r = mostMessages[0];
-    const pct = Math.round(
-      ((r.stats?.totalMessages ?? 0) /
-        rankings.reduce((sum, x) => sum + (x.stats?.totalMessages ?? 0), 0)) *
-        100
-    );
-    result.set(r.name, {
-      title: "מלך הקבוצה",
-      emoji: "👑",
-      summary: `שולט בצ׳אט עם ${r.stats?.totalMessages} הודעות (${pct}%). הכי פעיל ביום ${r.stats?.mostActiveDay}.`,
+  for (const member of memberScores) {
+    if (assigned.has(member.name)) continue;
+
+    // Find best available template
+    const best = member.scores.find((s) => !usedTemplates.has(s.templateIdx));
+    if (!best) continue;
+
+    const t = PERSONALITY_TEMPLATES[best.templateIdx];
+    result.set(member.name, {
+      title: t.title,
+      emoji: t.emoji,
+      summary: t.summaryFn(member.stats),
     });
-    assigned.add(r.name);
+    usedTemplates.add(best.templateIdx);
+    assigned.add(member.name);
   }
 
-  // 2. Most night messages → ינשוף הלילה
-  const nightOwl = rankings
-    .filter((r) => r.stats && !assigned.has(r.name))
-    .sort((a, b) => (b.stats?.nightMessages ?? 0) - (a.stats?.nightMessages ?? 0));
-
-  if (nightOwl[0]?.stats && (nightOwl[0].stats.nightMessages ?? 0) > 5) {
-    const r = nightOwl[0];
-    result.set(r.name, {
-      title: "ינשוף הלילה",
-      emoji: "🦉",
-      summary: `${r.stats?.nightMessages} הודעות אחרי חצות. מי צריך שינה?`,
+  // Fallback for any unassigned members
+  for (const member of members) {
+    if (assigned.has(member.displayName)) continue;
+    const stats = statsMap.get(member.displayName);
+    result.set(member.displayName, {
+      title: "חבר הקבוצה",
+      emoji: "💬",
+      summary: `${stats?.totalMessages ?? 0} הודעות, תמיד בתמונה.`,
     });
-    assigned.add(r.name);
-  }
-
-  // 3. Most emojis → מלך האימוג׳י
-  const emojiKing = rankings
-    .filter((r) => r.stats && !assigned.has(r.name))
-    .sort((a, b) => (b.stats?.emojiCount ?? 0) - (a.stats?.emojiCount ?? 0));
-
-  if (emojiKing[0]?.stats && (emojiKing[0].stats.emojiCount ?? 0) > 10) {
-    const r = emojiKing[0];
-    const topEmoji = r.stats?.topEmojis[0]?.emoji ?? "😂";
-    result.set(r.name, {
-      title: "מלך האימוג׳י",
-      emoji: "😂",
-      summary: `${r.stats?.emojiCount} אימוג׳ים, האהוב: ${topEmoji}. מדבר בסמיילים.`,
-    });
-    assigned.add(r.name);
-  }
-
-  // 4. Longest average message → הפילוסוף
-  const philosopher = rankings
-    .filter((r) => r.stats && !assigned.has(r.name))
-    .sort(
-      (a, b) =>
-        (b.stats?.averageMessageLength ?? 0) - (a.stats?.averageMessageLength ?? 0)
-    );
-
-  if (philosopher[0]?.stats && (philosopher[0].stats.averageMessageLength ?? 0) > 30) {
-    const r = philosopher[0];
-    result.set(r.name, {
-      title: "הפילוסוף",
-      emoji: "📜",
-      summary: `ממוצע ${r.stats?.averageMessageLength} תווים להודעה. כותב מגילות.`,
-    });
-    assigned.add(r.name);
-  }
-
-  // 5. Most media → הצלם
-  const photographer = rankings
-    .filter((r) => r.stats && !assigned.has(r.name))
-    .sort((a, b) => (b.stats?.mediaMessages ?? 0) - (a.stats?.mediaMessages ?? 0));
-
-  if (photographer[0]?.stats && (photographer[0].stats.mediaMessages ?? 0) > 10) {
-    const r = photographer[0];
-    result.set(r.name, {
-      title: "הצלם",
-      emoji: "📸",
-      summary: `${r.stats?.mediaMessages} תמונות וסרטונים. מתעד הכל.`,
-    });
-    assigned.add(r.name);
-  }
-
-  // 6. Least active → הרוח הרפאים
-  const ghost = rankings
-    .filter((r) => r.stats && !assigned.has(r.name))
-    .sort((a, b) => (a.stats?.totalMessages ?? 0) - (b.stats?.totalMessages ?? 0));
-
-  if (ghost[0]?.stats) {
-    const r = ghost[0];
-    result.set(r.name, {
-      title: "הרוח הרפאים",
-      emoji: "👻",
-      summary: `רק ${r.stats?.totalMessages} הודעות. אבל כשמופיע — שווה.`,
-    });
-    assigned.add(r.name);
-  }
-
-  // Fill remaining members with generic titles based on their best trait
-  for (const r of rankings) {
-    if (assigned.has(r.name) || !r.stats) continue;
-
-    const hour = r.stats.mostActiveHour;
-    if (hour >= 5 && hour < 12) {
-      result.set(r.name, {
-        title: "הציפור המוקדמת",
-        emoji: "🐦",
-        summary: `הכי פעיל בשעה ${hour}:00. קם מוקדם, כותב מוקדם.`,
-      });
-    } else if (hour >= 18 || hour < 5) {
-      result.set(r.name, {
-        title: "יצור הלילה",
-        emoji: "🌙",
-        summary: `הכי פעיל בשעה ${hour}:00. פורח בחושך.`,
-      });
-    } else {
-      result.set(r.name, {
-        title: "חבר הקבוצה",
-        emoji: "💬",
-        summary: `${r.stats.totalMessages} הודעות, תמיד בתמונה.`,
-      });
-    }
-    assigned.add(r.name);
   }
 
   return result;
@@ -166,6 +271,8 @@ export function pickSampleMessages(
   const eligible = chat.messages.filter((m) => {
     if (m.author !== memberName) return false;
     if (isMediaMessage(m.message)) return false;
+    if (isSystemMessage(m.message)) return false;
+    if (m.meta.isDeleted || m.meta.isForwarded) return false;
     if (m.message.length < 15 || m.message.length > 200) return false;
     if (m.message.startsWith("http")) return false;
     return true;

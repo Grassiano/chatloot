@@ -6,10 +6,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { ExtractionProgress, ExtractionStage } from "@/lib/parser/types";
 
 const STAGE_LABELS: Record<ExtractionStage, string> = {
-  reading_zip: "קורא את הקובץ...",
-  finding_chat: "מחפש את הצ׳אט...",
-  parsing_messages: "מנתח הודעות...",
-  extracting_media: "מחלץ קבצי מדיה...",
+  reading_zip: "קריאה...",
+  finding_chat: "חיפוש צ׳אט...",
+  parsing_messages: "ניתוח...",
+  extracting_media: "חילוץ מדיה...",
 };
 
 const STAGE_ORDER: ExtractionStage[] = [

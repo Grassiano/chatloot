@@ -18,6 +18,8 @@ export async function parseWhatsAppChat(
     throw new Error("no_messages_parsed");
   }
 
+  enrichMessages(rawMessages);
+
   // Extract unique members
   const memberMap = new Map<
     string,
@@ -83,6 +85,16 @@ export async function parseWhatsAppChat(
 
   if (members.length < 2) {
     throw new Error("not_enough_members");
+  }
+
+  // Sanitize: strip author from system messages so ALL downstream consumers
+  // automatically skip them (stats, samples, game questions, profiles, etc.)
+  const validMemberNames = new Set(members.map((m) => m.displayName));
+  for (const msg of rawMessages) {
+    if (!msg.author) continue;
+    if (isSystemAuthor(msg.author) || isSystemMessage(msg.message) || !validMemberNames.has(msg.author)) {
+      msg.author = null as unknown as string;
+    }
   }
 
   const stats = extractStats(rawMessages, members);
@@ -281,12 +293,11 @@ function isMediaOmitted(message: string): boolean {
 
 // Pre-compiled regex for system message detection
 const SYSTEM_MSG_PATTERNS = [
-  " added ", " removed ", " left the group", "joined using this group",
+  "added ", " added ", " removed ", " left the group", "joined using this group",
   "joined the group", "was added", "was removed", "created group",
   "changed the subject", "changed the group", "changed this group",
   "you're now an admin", "is no longer an admin",
   "turned on disappearing", "turned off disappearing", "pinned a message",
-  "this message was deleted", "you deleted this message", "deleted this message",
   "messages and calls are end-to-end encrypted",
   "הוסיף את", "הוסיפה את", "הוסיף/ה את", "הוסר/ה",
   "הוסר מהקבוצה", "הוסרה מהקבוצה",
@@ -299,7 +310,7 @@ const SYSTEM_MSG_PATTERNS = [
   "הפעיל הודעות נעלמות", "הפעילה הודעות נעלמות",
   "כיבה הודעות נעלמות", "כיבתה הודעות נעלמות",
   "הצמיד/ה הודעה", "הצמיד הודעה", "הצמידה הודעה",
-  "הודעה זו נמחקה", "מחקת הודעה זו", "ההודעות והשיחות מוצפנות",
+  "ההודעות והשיחות מוצפנות",
   "יצר את הקבוצה", "יצרה את הקבוצה", "יצר/ה את הקבוצה",
 ];
 
@@ -323,6 +334,39 @@ export function isMediaMessage(message: string): boolean {
     message.includes("<attached:") ||
     message.includes("(file attached)")
   );
+}
+
+// Pre-compiled regexes for message metadata enrichment
+const FORWARDED_RE = /^(Forwarded|הועבר)/i;
+const DELETED_RE =
+  /^(this message was deleted|you deleted this message|הודעה זו נמחקה|מחקת הודעה זו)$/i;
+const EDITED_RE = /\(edited\)|\(ערוך\)$/i;
+const LINK_RE = /https?:\/\/\S+/;
+
+/** Enrich raw messages with metadata extracted from message text. Single pass, mutates in place. */
+function enrichMessages(messages: ParsedMessage[]): void {
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
+    const prev = i > 0 ? messages[i - 1] : null;
+    const text = msg.message;
+    const firstLine = text.split("\n")[0]?.trim() ?? "";
+
+    msg.meta = {
+      isForwarded: FORWARDED_RE.test(firstLine),
+      isDeleted: DELETED_RE.test(text.trim()),
+      isEdited: EDITED_RE.test(text),
+      quotedText: firstLine.startsWith(">") ? firstLine.slice(1).trim() : null,
+      isConsecutive: prev?.author != null && prev.author === msg.author,
+      hasLink: LINK_RE.test(text),
+      hasQuestion: text.includes("?") || text.includes("؟"),
+      wordCount: text.split(/\s+/).filter(Boolean).length,
+    };
+  }
+}
+
+/** Check if a message is a deleted message (preserves author for stats) */
+export function isDeletedMessage(message: string): boolean {
+  return DELETED_RE.test(message.trim());
 }
 
 export function getMediaType(

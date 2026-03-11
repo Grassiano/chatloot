@@ -31,8 +31,15 @@ export async function analyzeChat(
         displayName: m.displayName,
         messageCount: m.messageCount,
         avgMessageLength: stats?.averageMessageLength ?? 0,
-        topEmojis:
-          stats?.topEmojis.slice(0, 3).map((e) => e.emoji) ?? [],
+        topEmojis: stats?.topEmojis.slice(0, 3).map((e) => e.emoji) ?? [],
+        topWords: stats?.topWords.slice(0, 3).map((w) => w.word) ?? [],
+        burstCount: stats?.burstCount ?? 0,
+        questionCount: stats?.questionCount ?? 0,
+        deletedCount: stats?.deletedCount ?? 0,
+        forwardedCount: stats?.forwardedCount ?? 0,
+        conversationStarts: stats?.conversationStarts ?? 0,
+        longestGhostDays: stats?.longestGhostDays ?? 0,
+        nightMessages: stats?.nightMessages ?? 0,
       };
     });
 

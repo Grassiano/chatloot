@@ -8,6 +8,7 @@ import type { GameQuestion } from "@/lib/game/types";
 import { useTimer } from "@/hooks/use-timer";
 import { Confetti } from "@/components/ui/confetti";
 import { hapticTap, hapticSuccess, hapticError } from "@/lib/haptics";
+import { playSound } from "@/lib/sounds";
 
 interface GameRoundProps {
   game: ReturnType<typeof useGame>;
@@ -78,15 +79,18 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
     );
     if (anyCorrect) {
       hapticSuccess();
+      playSound("correct");
       setShowConfetti(true);
     } else {
       hapticError();
+      playSound("wrong");
     }
   }, [phase, players, state.roundResults, currentRound]);
 
   // Auto-advance from question phase to answering after dramatic pause
   useEffect(() => {
     if (phase === "question") {
+      playSound("reveal");
       const id = setTimeout(() => {
         showQuestion();
         timerReset();
@@ -273,12 +277,14 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
               )}
 
               {/* Answer options */}
-              <div className={`mt-4 grid gap-2 ${currentQuestion.type === "true_false" ? "grid-cols-1" : "grid-cols-2"}`}>
+              <div className={`mt-4 grid gap-2 ${currentQuestion.type === "true_false" || currentQuestion.type === "time_guess" ? "grid-cols-1" : "grid-cols-2"}`}>
                 {currentQuestion.options.map((option) => {
                   const isSelected = selectedAnswer === option;
-                  const photoUrl = currentQuestion.type === "who_said_it" || currentQuestion.type === "stat_trivia"
-                    ? memberPhotos?.get(option)
-                    : undefined;
+                  const showPhoto = currentQuestion.type === "who_said_it" ||
+                    currentQuestion.type === "stat_trivia" ||
+                    currentQuestion.type === "word_cloud" ||
+                    currentQuestion.type === "ghost_detective";
+                  const photoUrl = showPhoto ? memberPhotos?.get(option) : undefined;
                   return (
                     <motion.button
                       key={option}
@@ -305,7 +311,9 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                       {currentQuestion.type === "true_false" && (
                         <span className="text-[20px]">{option === "נכון" ? "✓" : "✕"}</span>
                       )}
-                      {option}
+                      <span className={currentQuestion.type === "emoji_match" && currentQuestion.targetMember ? "text-[28px]" : ""}>
+                        {option}
+                      </span>
                     </motion.button>
                   );
                 })}
@@ -368,10 +376,25 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                     {currentQuestion.correctAnswer}
                   </p>
                 </div>
-                {/* Show stat value for trivia questions */}
+                {/* Show extra info on reveal */}
                 {currentQuestion.type === "stat_trivia" && (
                   <p className="mt-1 text-[14px] text-[#8B949E]">
                     {currentQuestion.statValue}
+                  </p>
+                )}
+                {currentQuestion.type === "word_cloud" && (
+                  <p className="mt-1 text-[14px] text-[#8B949E]">
+                    ״{currentQuestion.targetWord}״ — {currentQuestion.wordCount} פעמים
+                  </p>
+                )}
+                {currentQuestion.type === "ghost_detective" && (
+                  <p className="mt-1 text-[14px] text-[#8B949E]">
+                    {currentQuestion.ghostDays} ימים בלי הודעה
+                  </p>
+                )}
+                {currentQuestion.type === "time_guess" && (
+                  <p className="mt-1 text-[14px] text-[#8B949E]">
+                    בשעה {currentQuestion.gmNote}
                   </p>
                 )}
               </motion.div>
@@ -500,6 +523,15 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
 // pulling the entire GameRound tree along for the ride.
 function TimerBar({ timer }: { timer: ReturnType<typeof useTimer> }) {
   const { progress, timeLeft } = timer;
+  const lastTickRef = useRef(-1);
+
+  useEffect(() => {
+    const rounded = Math.ceil(timeLeft);
+    if (rounded <= 5 && rounded > 0 && rounded !== lastTickRef.current) {
+      lastTickRef.current = rounded;
+      playSound("tick");
+    }
+  }, [timeLeft]);
 
   const color =
     progress > 0.5 ? "#00A884" : progress > 0.2 ? "#E2A829" : "#FF6B6B";
@@ -550,6 +582,12 @@ function QuestionTypeLabel({ question }: { question: GameQuestion }) {
       return <>😎 אימוג׳ים</>;
     case "true_false":
       return <>נכון או לא?</>;
+    case "word_cloud":
+      return <>🔤 של מי המילה?</>;
+    case "time_guess":
+      return <>⏰ מתי נשלח?</>;
+    case "ghost_detective":
+      return <>🕵️ מי נעלם?</>;
   }
 }
 
@@ -595,6 +633,56 @@ function QuestionPrompt({ question }: { question: GameQuestion }) {
         >
           <p className="text-[19px] font-bold leading-relaxed text-[#F0F6FC]">
             {question.statement}
+          </p>
+        </motion.div>
+      );
+    case "word_cloud":
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-auto max-w-sm text-center"
+        >
+          <p className="mb-3 text-[40px] font-black text-[#F5C542]">
+            ״{question.targetWord}״
+          </p>
+          <p className="text-[14px] text-[#8B949E]">
+            {question.wordCount} פעמים
+          </p>
+          <p className="mt-2 text-[20px] font-bold leading-snug text-[#F0F6FC]">
+            {question.prompt}
+          </p>
+        </motion.div>
+      );
+    case "time_guess":
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-auto max-w-sm text-center"
+        >
+          <MessageBubble text={question.messageText} />
+          <p className="mt-3 text-[14px] text-[#8B949E]">
+            נשלח על ידי {question.messageAuthor}
+          </p>
+          <p className="mt-2 text-[18px] font-bold leading-snug text-[#F0F6FC]">
+            {question.prompt}
+          </p>
+        </motion.div>
+      );
+    case "ghost_detective":
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-auto max-w-sm text-center"
+        >
+          <p className="mb-2 text-[48px]">🕵️</p>
+          <p className="text-[36px] font-black tabular-nums text-[#F5C542]">
+            {question.ghostDays} ימים
+          </p>
+          <p className="mt-2 text-[20px] font-bold leading-snug text-[#F0F6FC]">
+            {question.prompt}
           </p>
         </motion.div>
       );

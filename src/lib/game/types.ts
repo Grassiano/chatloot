@@ -32,7 +32,7 @@ export interface Player {
 
 // --- Question Types ---
 
-export type QuestionType = "who_said_it" | "stat_trivia" | "emoji_match" | "true_false";
+export type QuestionType = "who_said_it" | "stat_trivia" | "emoji_match" | "true_false" | "word_cloud" | "time_guess" | "ghost_detective";
 
 export interface WhoSaidItQuestion {
   type: "who_said_it";
@@ -72,7 +72,43 @@ export interface TrueFalseQuestion {
   gmNote?: string;
 }
 
-export type GameQuestion = WhoSaidItQuestion | StatTriviaQuestion | EmojiMatchQuestion | TrueFalseQuestion;
+export interface WordCloudQuestion {
+  type: "word_cloud";
+  prompt: string;
+  targetWord: string;
+  wordCount: number;
+  correctAnswer: string;
+  options: string[];
+  gmNote?: string;
+}
+
+export interface TimeGuessQuestion {
+  type: "time_guess";
+  prompt: string;
+  messageText: string;
+  messageAuthor: string;
+  correctAnswer: string;
+  options: string[];
+  gmNote?: string;
+}
+
+export interface GhostDetectiveQuestion {
+  type: "ghost_detective";
+  prompt: string;
+  ghostDays: number;
+  correctAnswer: string;
+  options: string[];
+  gmNote?: string;
+}
+
+export type GameQuestion =
+  | WhoSaidItQuestion
+  | StatTriviaQuestion
+  | EmojiMatchQuestion
+  | TrueFalseQuestion
+  | WordCloudQuestion
+  | TimeGuessQuestion
+  | GhostDetectiveQuestion;
 
 export interface RoundResult {
   roundNumber: number;

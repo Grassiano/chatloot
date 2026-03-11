@@ -116,6 +116,134 @@ const TEMPLATES: TFTemplate[] = [
       };
     },
   },
+  // Deleted messages threshold
+  {
+    generate: (chat) => {
+      const members = [...chat.stats.members.entries()].filter(
+        ([, s]) => s.deletedCount > 2
+      );
+      if (members.length === 0) return null;
+
+      const [name, stats] = members[Math.floor(Math.random() * members.length)];
+      const threshold = Math.round(stats.deletedCount / 5) * 5 || 5;
+      const isTrue = stats.deletedCount >= threshold;
+
+      return {
+        statement: `${name} מחק/ה יותר מ-${threshold} הודעות`,
+        isTrue,
+        gmNote: `מחק/ה ${stats.deletedCount} הודעות`,
+      };
+    },
+  },
+  // Question count comparison
+  {
+    generate: (chat) => {
+      const members = [...chat.stats.members.entries()].filter(
+        ([, s]) => s.questionCount > 5
+      );
+      if (members.length < 2) return null;
+
+      const sorted = members.sort((a, b) => b[1].questionCount - a[1].questionCount);
+      const [topName] = sorted[0];
+      const [secondName] = sorted[1];
+
+      if (Math.random() > 0.5) {
+        return {
+          statement: `${topName} שואל/ת יותר שאלות מ-${secondName}`,
+          isTrue: true,
+          gmNote: `${sorted[0][1].questionCount} מול ${sorted[1][1].questionCount}`,
+        };
+      }
+      return {
+        statement: `${secondName} שואל/ת יותר שאלות מ-${topName}`,
+        isTrue: false,
+        gmNote: `בדיוק הפוך!`,
+      };
+    },
+  },
+  // Ghost days threshold
+  {
+    generate: (chat) => {
+      const members = [...chat.stats.members.entries()].filter(
+        ([, s]) => s.longestGhostDays > 3
+      );
+      if (members.length === 0) return null;
+
+      const [name, stats] = members[Math.floor(Math.random() * members.length)];
+      const threshold = Math.round(stats.longestGhostDays / 7) * 7 || 7;
+      const isTrue = stats.longestGhostDays >= threshold;
+
+      return {
+        statement: `${name} נעלם/ה מהקבוצה ליותר מ-${threshold} ימים`,
+        isTrue,
+        gmNote: `נעלם/ה ל-${stats.longestGhostDays} ימים`,
+      };
+    },
+  },
+  // Forwarded comparison
+  {
+    generate: (chat) => {
+      const members = [...chat.stats.members.entries()].filter(
+        ([, s]) => s.forwardedCount > 3
+      );
+      if (members.length < 2) return null;
+
+      const sorted = members.sort((a, b) => b[1].forwardedCount - a[1].forwardedCount);
+      const [topName] = sorted[0];
+      const [secondName] = sorted[1];
+
+      if (Math.random() > 0.5) {
+        return {
+          statement: `${topName} מעביר/ה יותר הודעות מ-${secondName}`,
+          isTrue: true,
+          gmNote: `${sorted[0][1].forwardedCount} מול ${sorted[1][1].forwardedCount}`,
+        };
+      }
+      return {
+        statement: `${secondName} מעביר/ה יותר הודעות מ-${topName}`,
+        isTrue: false,
+        gmNote: `בדיוק הפוך!`,
+      };
+    },
+  },
+  // Words per message
+  {
+    generate: (chat) => {
+      const members = [...chat.stats.members.entries()].filter(
+        ([, s]) => s.averageWordsPerMessage > 3
+      );
+      if (members.length === 0) return null;
+
+      const [name, stats] = members[Math.floor(Math.random() * members.length)];
+      const threshold = Math.round(stats.averageWordsPerMessage);
+      const isTrue = stats.averageWordsPerMessage >= threshold;
+
+      return {
+        statement: `${name} שולח/ת בממוצע יותר מ-${threshold} מילים בהודעה`,
+        isTrue,
+        gmNote: `ממוצע ${stats.averageWordsPerMessage} מילים`,
+      };
+    },
+  },
+  // Group messages per day
+  {
+    generate: (chat) => {
+      if (chat.stats.messagesPerDay < 5) return null;
+
+      const actual = chat.stats.messagesPerDay;
+      // 50/50: show real ±30%
+      const isTrueVersion = Math.random() > 0.5;
+      const shown = isTrueVersion
+        ? actual
+        : Math.round(actual * (Math.random() > 0.5 ? 1.5 : 0.5));
+
+      return {
+        statement: `הקבוצה שולחת בממוצע כ-${shown} הודעות ביום`,
+        isTrue: isTrueVersion,
+        gmNote: `הממוצע האמיתי: ${actual} ביום`,
+      };
+    },
+  },
 ];
 
 export function generateTrueFalseQuestions(

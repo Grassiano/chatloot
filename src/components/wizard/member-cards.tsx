@@ -69,9 +69,10 @@ export function MemberCards({
 
   if (!current) return null;
 
+  // RTL: forward (next) pushes cards LEFT, backward (prev) pushes RIGHT
   const slideVariants = {
     enter: (d: number) => ({
-      x: d > 0 ? 300 : -300,
+      x: d > 0 ? -300 : 300,
       opacity: 0,
     }),
     center: {
@@ -80,7 +81,7 @@ export function MemberCards({
       transition: { type: "spring" as const, stiffness: 300, damping: 30 },
     },
     exit: (d: number) => ({
-      x: d > 0 ? -300 : 300,
+      x: d > 0 ? 300 : -300,
       opacity: 0,
     }),
   };
@@ -282,16 +283,54 @@ function ProfileCard({
         </AnimatePresence>
       </div>
 
-      {/* Stats bar */}
-      <div className="flex items-center gap-4 text-[13px] text-[#667781]">
-        <span>{profile.messageCount} הודעות</span>
+      {/* Rich stats grid */}
+      <div className="grid w-full grid-cols-2 gap-2">
+        <StatPill icon="💬" label={`${profile.messageCount} הודעות`} />
+        {profile.responseTimeAvg > 0 && (
+          <StatPill icon="⏱️" label={`עונה תוך ${Math.round(profile.responseTimeAvg)} דק׳`} />
+        )}
+        {profile.burstCount > 0 && (
+          <StatPill icon="🔥" label={`${profile.burstCount} ספאמים`} />
+        )}
+        {profile.longestGhostDays >= 3 && (
+          <StatPill icon="👻" label={`נעלם ${profile.longestGhostDays} ימים`} />
+        )}
+        {profile.conversationStarts >= 2 && (
+          <StatPill icon="⚡" label={`החיה ${profile.conversationStarts} שיחות`} />
+        )}
         {profile.voiceNoteCount > 0 && (
-          <span>{profile.voiceNoteCount} הודעות קול</span>
+          <StatPill icon="🎤" label={`${profile.voiceNoteCount} הודעות קול`} />
         )}
         {profile.mediaMessages > 0 && (
-          <span>{profile.mediaMessages} מדיה</span>
+          <StatPill icon="📸" label={`${profile.mediaMessages} מדיה`} />
         )}
       </div>
+
+      {/* Top words */}
+      {profile.topWords.length > 0 && (
+        <div className="flex w-full flex-wrap justify-center gap-1.5">
+          {profile.topWords.map((w) => (
+            <span
+              key={w.word}
+              className="rounded-full bg-[#E7FCE2] px-2.5 py-0.5 text-[12px] font-medium text-[#1B4332]"
+            >
+              {w.word} ({w.count})
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Top emojis */}
+      {profile.topEmojis.length > 0 && (
+        <div className="flex items-center gap-3">
+          {profile.topEmojis.slice(0, 3).map((e) => (
+            <span key={e.emoji} className="text-center">
+              <span className="text-[20px]">{e.emoji}</span>
+              <span className="block text-[11px] text-[#667781]">{e.count}</span>
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Sample message */}
       {profile.sampleMessages[0] && (
@@ -369,6 +408,16 @@ function VoicePlayer({ url }: { url: string }) {
         )}
       </button>
       <WaveformBars />
+    </div>
+  );
+}
+
+/** Small stat badge */
+function StatPill({ icon, label }: { icon: string; label: string }) {
+  return (
+    <div className="flex items-center gap-1.5 rounded-lg bg-[#F0F2F5] px-2.5 py-1.5 text-[12px] text-[#111B21]">
+      <span>{icon}</span>
+      <span>{label}</span>
     </div>
   );
 }

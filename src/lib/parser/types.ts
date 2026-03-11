@@ -1,3 +1,14 @@
+export interface MessageMetadata {
+  isForwarded: boolean;
+  isDeleted: boolean;
+  isEdited: boolean;
+  quotedText: string | null;
+  isConsecutive: boolean;
+  hasLink: boolean;
+  hasQuestion: boolean;
+  wordCount: number;
+}
+
 export interface ParsedMessage {
   date: Date;
   author: string | null;
@@ -5,6 +16,7 @@ export interface ParsedMessage {
   attachment?: {
     fileName: string;
   };
+  meta: MessageMetadata;
 }
 
 export interface ChatMember {
@@ -25,11 +37,21 @@ export interface MemberStats {
   emojiCount: number;
   topEmojis: Array<{ emoji: string; count: number }>;
   longestMessage: string;
-  responseTimeAvg: number | null;
-  nightMessages: number; // messages between 00:00-05:00
-  morningMessages: number; // 05:00-12:00
-  afternoonMessages: number; // 12:00-18:00
-  eveningMessages: number; // 18:00-00:00
+  responseTimeAvg: number;
+  nightMessages: number;
+  morningMessages: number;
+  afternoonMessages: number;
+  eveningMessages: number;
+  burstCount: number;
+  questionCount: number;
+  deletedCount: number;
+  forwardedCount: number;
+  editedCount: number;
+  conversationStarts: number;
+  longestGhostDays: number;
+  linkCount: number;
+  topWords: Array<{ word: string; count: number }>;
+  averageWordsPerMessage: number;
 }
 
 export interface ChatStats {
@@ -42,6 +64,11 @@ export interface ChatStats {
   mediaCount: number;
   systemMessageCount: number;
   members: Map<string, MemberStats>;
+  peakHour: number;
+  busiestDay: string;
+  conversationCount: number;
+  totalDays: number;
+  messagesPerDay: number;
 }
 
 export interface MediaFile {

@@ -2,10 +2,22 @@ import type { AnalyzeRequest } from "./types";
 
 export function buildAnalyzePrompt(data: AnalyzeRequest): string {
   const memberSummary = data.members
-    .map(
-      (m) =>
-        `- ${m.displayName}: ${m.messageCount} msgs, avg ${Math.round(m.avgMessageLength)} chars, emojis: ${m.topEmojis.join("") || "none"}`
-    )
+    .map((m) => {
+      const parts = [
+        `${m.messageCount} msgs`,
+        `avg ${Math.round(m.avgMessageLength)} chars`,
+        `emojis: ${m.topEmojis.join("") || "none"}`,
+      ];
+      if (m.topWords?.length) parts.push(`words: [${m.topWords.join(", ")}]`);
+      if (m.burstCount) parts.push(`bursts: ${m.burstCount}`);
+      if (m.questionCount) parts.push(`questions: ${m.questionCount}`);
+      if (m.deletedCount) parts.push(`deleted: ${m.deletedCount}`);
+      if (m.nightMessages && m.nightMessages > 5) parts.push(`night msgs: ${m.nightMessages}`);
+      if (m.longestGhostDays && m.longestGhostDays > 7) parts.push(`ghost: ${m.longestGhostDays}d`);
+      if (m.conversationStarts && m.conversationStarts > 3) parts.push(`revives: ${m.conversationStarts}`);
+      if (m.personalityTitle) parts.push(`personality: "${m.personalityTitle}"`);
+      return `- ${m.displayName}: ${parts.join(", ")}`;
+    })
     .join("\n");
 
   const messagesBlock = data.messages
@@ -68,8 +80,12 @@ Return ONLY valid JSON:
 ## memberProfiles instructions:
 Write a SHORT, FUNNY Hebrew personality summary for EACH group member based on their messages and stats.
 - Be playful and roast-y — like a friend who knows them well
-- Reference specific patterns: emoji habits, writing style, active hours, topics they talk about
-- Keep it 1-2 sentences max
+- Reference specific behavioral patterns from the stats: burst spamming, question asking, message deleting, late-night activity, ghost periods, conversation reviving, signature words
+- Use the member's favorite words and emoji patterns to craft more personal roasts
+- If someone has high deletedCount, reference it ("מוחק ראיות כמו מקצוען")
+- If someone has high burstCount, reference it ("שולח 10 הודעות לפני שמישהו מספיק לענות")
+- If someone has long ghost periods, reference it ("נעלם לחודש וחוזר כאילו כלום")
+- Keep it 1-2 sentences max, punchy and specific
 - Example: "הפילוסופית של הקבוצה. כותבת מגילות ב-3 בלילה ומצפה שכולם יקראו."
 
 Sort rankedMessages by score descending. Return 20-30 messages.

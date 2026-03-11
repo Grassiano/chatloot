@@ -14,6 +14,11 @@ export interface MemberProfile {
   mostActiveHour: number;
   nightMessages: number;
   mediaMessages: number;
+  responseTimeAvg: number;
+  burstCount: number;
+  longestGhostDays: number;
+  conversationStarts: number;
+  topWords: Array<{ word: string; count: number }>;
 
   // Personality (template → Claude-enhanced)
   personalityTitle: string;

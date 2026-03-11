@@ -15,9 +15,21 @@ const REVEAL_ITEMS = [
   "messageCount",
   "dateRange",
   "memberCount",
+  "statsRow",
+  "totalDays",
   "roast",
   "tagline",
 ] as const;
+
+const HEBREW_DAYS: Record<string, string> = {
+  Sunday: "ראשון",
+  Monday: "שני",
+  Tuesday: "שלישי",
+  Wednesday: "רביעי",
+  Thursday: "חמישי",
+  Friday: "שישי",
+  Saturday: "שבת",
+};
 
 export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
   const [visibleIndex, setVisibleIndex] = useState(-1);
@@ -42,7 +54,7 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
         }
         return next;
       });
-    }, 700);
+    }, 600);
 
     // Start the first item immediately
     setVisibleIndex(0);
@@ -130,8 +142,43 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
             </motion.div>
           )}
 
-          {/* Fun roast */}
+          {/* Stats row — pills */}
           {visibleIndex >= 4 && (
+            <motion.div
+              key="statsRow"
+              variants={itemVariants}
+              initial="hidden"
+              animate="visible"
+              className="flex flex-wrap justify-center gap-2"
+            >
+              <span className="rounded-full bg-[#E7FCE2] px-3 py-1 text-[13px] font-medium text-[#1B4332]">
+                {chat.stats.messagesPerDay} הודעות ביום
+              </span>
+              <span className="rounded-full bg-[#E7FCE2] px-3 py-1 text-[13px] font-medium text-[#1B4332]">
+                שיא: {String(chat.stats.peakHour).padStart(2, "0")}:00
+              </span>
+              <span className="rounded-full bg-[#E7FCE2] px-3 py-1 text-[13px] font-medium text-[#1B4332]">
+                יום {HEBREW_DAYS[chat.stats.busiestDay] ?? chat.stats.busiestDay}
+              </span>
+            </motion.div>
+          )}
+
+          {/* Total days */}
+          {visibleIndex >= 5 && (
+            <motion.div
+              key="totalDays"
+              variants={itemVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <p className="text-[16px] text-[#667781]">
+                {chat.stats.totalDays.toLocaleString()} ימים של שיחות
+              </p>
+            </motion.div>
+          )}
+
+          {/* Fun roast */}
+          {visibleIndex >= 6 && (
             <motion.div
               key="roast"
               variants={itemVariants}
@@ -146,7 +193,7 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
           )}
 
           {/* Tagline */}
-          {visibleIndex >= 5 && (
+          {visibleIndex >= 7 && (
             <motion.div
               key="tagline"
               variants={itemVariants}
