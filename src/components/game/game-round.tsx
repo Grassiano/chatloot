@@ -206,7 +206,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-52px)] flex-col bg-[radial-gradient(circle_at_center,#141420,#0A0A0F)] text-white">
+    <div className="flex min-h-[calc(100vh-52px)] flex-col bg-[radial-gradient(circle_at_center,#1A1035,#0F0B1E)] text-white">
       <Confetti active={showConfetti} count={50} duration={2500} />
 
       {/* Timer bar — isolated sub-component, re-renders independently */}
@@ -216,7 +216,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
 
       {/* Round counter */}
       <div className="flex items-center justify-between px-4 py-3">
-        <span className="text-[13px] font-medium text-[#8B949E]">
+        <span className="text-[13px] font-medium text-[#9B96B0]">
           סיבוב {currentRound} / {settings.totalRounds}
         </span>
         {phase === "answering" && (
@@ -239,7 +239,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: [0, 1, 0.7, 1] }}
                 transition={{ duration: 1 }}
-                className="mb-6 text-[15px] font-medium text-[#F5C542]"
+                className="mb-6 text-[15px] font-medium text-[#FBBF24]"
               >
                 <QuestionTypeLabel question={currentQuestion} />
               </motion.p>
@@ -266,7 +266,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                   animate={{ opacity: 1, y: 0 }}
                   className="mt-4 text-center"
                 >
-                  <span className="text-[13px] text-[#8B949E]">תור של </span>
+                  <span className="text-[13px] text-[#9B96B0]">תור של </span>
                   <span
                     className="text-[14px] font-bold"
                     style={{ color: currentPlayer.color }}
@@ -297,7 +297,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                       }
                       className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-4 text-[15px] font-medium transition-all ${
                         isSelected
-                          ? "border-[#F5C542] bg-[#F5C542] text-[#0A0A0F] ring-2 ring-[#F5C542] shadow-[0_0_16px_rgba(245,197,66,0.2)]"
+                          ? "border-[#FBBF24] bg-[#FBBF24] text-[#0F0B1E] ring-2 ring-[#FBBF24] shadow-[0_0_16px_rgba(245,197,66,0.2)]"
                           : "border-white/10 bg-white/5 text-white backdrop-blur-md hover:border-white/20 hover:bg-white/10"
                       } disabled:opacity-40`}
                     >
@@ -329,7 +329,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                       style={{
                         backgroundColor: answeredPlayers.has(p.id)
                           ? p.color
-                          : "#30363D",
+                          : "#352F55",
                       }}
                     />
                   ))}
@@ -361,7 +361,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                 }}
                 className="mt-6"
               >
-                <p className="mb-2 text-[14px] text-[#8B949E]">
+                <p className="mb-2 text-[14px] text-[#9B96B0]">
                   התשובה היא...
                 </p>
                 <div className="flex items-center justify-center gap-3">
@@ -372,28 +372,28 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                       className="h-12 w-12 rounded-full object-cover"
                     />
                   )}
-                  <p className="text-[28px] font-black text-[#F5C542]">
+                  <p className="text-[28px] font-black text-[#FBBF24]">
                     {currentQuestion.correctAnswer}
                   </p>
                 </div>
                 {/* Show extra info on reveal */}
                 {currentQuestion.type === "stat_trivia" && (
-                  <p className="mt-1 text-[14px] text-[#8B949E]">
+                  <p className="mt-1 text-[14px] text-[#9B96B0]">
                     {currentQuestion.statValue}
                   </p>
                 )}
                 {currentQuestion.type === "word_cloud" && (
-                  <p className="mt-1 text-[14px] text-[#8B949E]">
+                  <p className="mt-1 text-[14px] text-[#9B96B0]">
                     ״{currentQuestion.targetWord}״ — {currentQuestion.wordCount} פעמים
                   </p>
                 )}
                 {currentQuestion.type === "ghost_detective" && (
-                  <p className="mt-1 text-[14px] text-[#8B949E]">
+                  <p className="mt-1 text-[14px] text-[#9B96B0]">
                     {currentQuestion.ghostDays} ימים בלי הודעה
                   </p>
                 )}
                 {currentQuestion.type === "time_guess" && (
-                  <p className="mt-1 text-[14px] text-[#8B949E]">
+                  <p className="mt-1 text-[14px] text-[#9B96B0]">
                     בשעה {currentQuestion.gmNote}
                   </p>
                 )}
@@ -424,7 +424,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                         >
                           {player.name}
                         </span>
-                        <span className="text-[12px] text-[#8B949E]">
+                        <span className="text-[12px] text-[#9B96B0]">
                           {result?.answer ?? "לא ענה"}
                         </span>
                       </div>
@@ -444,7 +444,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="mt-6 flex items-center justify-center gap-2 text-[13px] text-[#8B949E]"
+                className="mt-6 flex items-center justify-center gap-2 text-[13px] text-[#9B96B0]"
               >
                 {revealPaused ? (
                   <span>לחצו להמשיך ▶</span>
@@ -464,7 +464,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
               exit={{ opacity: 0 }}
               className="w-full max-w-lg"
             >
-              <p className="mb-6 text-center text-[18px] font-bold text-[#F5C542]">
+              <p className="mb-6 text-center text-[18px] font-bold text-[#FBBF24]">
                 טבלת ניקוד
               </p>
 
@@ -479,7 +479,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                       transition={{ delay: rank * 0.1 }}
                       className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-md"
                     >
-                      <span className="w-6 text-center text-[16px] font-black text-[#8B949E]">
+                      <span className="w-6 text-center text-[16px] font-black text-[#9B96B0]">
                         {rank === 0 ? "👑" : rank + 1}
                       </span>
                       <div
@@ -491,7 +491,7 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
                       <span className="flex-1 text-[15px] font-medium">
                         {player.name}
                       </span>
-                      <span className="text-[16px] font-bold tabular-nums text-[#F5C542]">
+                      <span className="text-[16px] font-bold tabular-nums text-[#FBBF24]">
                         {player.score}
                       </span>
                     </motion.div>
@@ -500,12 +500,12 @@ export function GameRound({ game, memberPhotos }: GameRoundProps) {
 
               {/* Auto-advance countdown bar — driven by state for sync */}
               <div className="mt-8">
-                <div className="mb-2 text-center text-[13px] text-[#8B949E]">
+                <div className="mb-2 text-center text-[13px] text-[#9B96B0]">
                   ממשיכים בעוד {scoresCountdown}...
                 </div>
-                <div className="h-1 w-full overflow-hidden rounded-full bg-[#21262D]">
+                <div className="h-1 w-full overflow-hidden rounded-full bg-[#252040]">
                   <div
-                    className="h-full rounded-full bg-[#F5C542] transition-all duration-1000 ease-linear"
+                    className="h-full rounded-full bg-[#FBBF24] transition-all duration-1000 ease-linear"
                     style={{ width: `${(scoresCountdown / 5) * 100}%` }}
                   />
                 </div>
@@ -534,10 +534,10 @@ function TimerBar({ timer }: { timer: ReturnType<typeof useTimer> }) {
   }, [timeLeft]);
 
   const color =
-    progress > 0.5 ? "#00A884" : progress > 0.2 ? "#E2A829" : "#FF6B6B";
+    progress > 0.5 ? "#8B5CF6" : progress > 0.2 ? "#FBBF24" : "#FF6B6B";
 
   return (
-    <div className="h-1.5 w-full bg-[#21262D]">
+    <div className="h-1.5 w-full bg-[#252040]">
       <div
         className="h-full origin-left"
         style={{
@@ -553,7 +553,7 @@ function TimerBar({ timer }: { timer: ReturnType<typeof useTimer> }) {
 /** Isolated countdown text — absorbs 100ms timer re-renders */
 function TimerCountdown({ timer }: { timer: ReturnType<typeof useTimer> }) {
   return (
-    <span className="text-[13px] tabular-nums text-[#8B949E]">
+    <span className="text-[13px] tabular-nums text-[#9B96B0]">
       {Math.ceil(timer.timeLeft)} שניות
     </span>
   );
@@ -566,7 +566,7 @@ function MessageBubble({ text }: { text: string }) {
       animate={{ opacity: 1, y: 0 }}
       className="mx-auto max-w-sm rounded-2xl border border-white/10 bg-white/5 px-5 py-4 shadow-lg backdrop-blur-lg"
     >
-      <p className="text-[17px] leading-relaxed text-[#F0F6FC]">{text}</p>
+      <p className="text-[17px] leading-relaxed text-[#F0EEFF]">{text}</p>
     </motion.div>
   );
 }
@@ -603,8 +603,8 @@ function QuestionPrompt({ question }: { question: GameQuestion }) {
           animate={{ opacity: 1, y: 0 }}
           className="mx-auto max-w-sm text-center"
         >
-          <p className="text-[13px] font-medium text-[#8B949E]">📊 טריוויה</p>
-          <p className="mt-2 text-[22px] font-bold leading-snug text-[#F0F6FC]">
+          <p className="text-[13px] font-medium text-[#9B96B0]">📊 טריוויה</p>
+          <p className="mt-2 text-[22px] font-bold leading-snug text-[#F0EEFF]">
             {question.prompt}
           </p>
         </motion.div>
@@ -619,7 +619,7 @@ function QuestionPrompt({ question }: { question: GameQuestion }) {
           {question.targetEmoji && (
             <p className="mb-2 text-[48px]">{question.targetEmoji}</p>
           )}
-          <p className="text-[20px] font-bold leading-snug text-[#F0F6FC]">
+          <p className="text-[20px] font-bold leading-snug text-[#F0EEFF]">
             {question.prompt}
           </p>
         </motion.div>
@@ -631,7 +631,7 @@ function QuestionPrompt({ question }: { question: GameQuestion }) {
           animate={{ opacity: 1, y: 0 }}
           className="mx-auto max-w-sm rounded-2xl border border-white/10 bg-white/5 px-5 py-4 shadow-lg backdrop-blur-lg text-center"
         >
-          <p className="text-[19px] font-bold leading-relaxed text-[#F0F6FC]">
+          <p className="text-[19px] font-bold leading-relaxed text-[#F0EEFF]">
             {question.statement}
           </p>
         </motion.div>
@@ -643,13 +643,13 @@ function QuestionPrompt({ question }: { question: GameQuestion }) {
           animate={{ opacity: 1, y: 0 }}
           className="mx-auto max-w-sm text-center"
         >
-          <p className="mb-3 text-[40px] font-black text-[#F5C542]">
+          <p className="mb-3 text-[40px] font-black text-[#FBBF24]">
             ״{question.targetWord}״
           </p>
-          <p className="text-[14px] text-[#8B949E]">
+          <p className="text-[14px] text-[#9B96B0]">
             {question.wordCount} פעמים
           </p>
-          <p className="mt-2 text-[20px] font-bold leading-snug text-[#F0F6FC]">
+          <p className="mt-2 text-[20px] font-bold leading-snug text-[#F0EEFF]">
             {question.prompt}
           </p>
         </motion.div>
@@ -662,10 +662,10 @@ function QuestionPrompt({ question }: { question: GameQuestion }) {
           className="mx-auto max-w-sm text-center"
         >
           <MessageBubble text={question.messageText} />
-          <p className="mt-3 text-[14px] text-[#8B949E]">
+          <p className="mt-3 text-[14px] text-[#9B96B0]">
             נשלח על ידי {question.messageAuthor}
           </p>
-          <p className="mt-2 text-[18px] font-bold leading-snug text-[#F0F6FC]">
+          <p className="mt-2 text-[18px] font-bold leading-snug text-[#F0EEFF]">
             {question.prompt}
           </p>
         </motion.div>
@@ -678,10 +678,10 @@ function QuestionPrompt({ question }: { question: GameQuestion }) {
           className="mx-auto max-w-sm text-center"
         >
           <p className="mb-2 text-[48px]">🕵️</p>
-          <p className="text-[36px] font-black tabular-nums text-[#F5C542]">
+          <p className="text-[36px] font-black tabular-nums text-[#FBBF24]">
             {question.ghostDays} ימים
           </p>
-          <p className="mt-2 text-[20px] font-bold leading-snug text-[#F0F6FC]">
+          <p className="mt-2 text-[20px] font-bold leading-snug text-[#F0EEFF]">
             {question.prompt}
           </p>
         </motion.div>

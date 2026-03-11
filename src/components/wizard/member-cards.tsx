@@ -96,10 +96,10 @@ export function MemberCards({
       <div className="mx-auto w-full max-w-lg flex-1">
         {/* Header */}
         <div className="mb-4 text-center">
-          <h2 className="text-[18px] font-bold text-[#111B21]">
+          <h2 className="text-[18px] font-bold text-[#1E1B3A]">
             הכירו את החברים
           </h2>
-          <p className="mt-1 text-[13px] text-[#667781]">
+          <p className="mt-1 text-[13px] text-[#6B7194]">
             {currentIndex + 1} / {activeProfiles.length}
           </p>
         </div>
@@ -139,7 +139,7 @@ export function MemberCards({
           <button
             onClick={goPrev}
             disabled={currentIndex === 0}
-            className="rounded-full px-4 py-2 text-[14px] font-medium text-[#00A884] transition-opacity disabled:opacity-30"
+            className="rounded-full px-4 py-2 text-[14px] font-medium text-[#8B5CF6] transition-opacity disabled:opacity-30"
           >
             הקודם
           </button>
@@ -158,8 +158,8 @@ export function MemberCards({
                 <span
                   className={`block h-2.5 rounded-full transition-all ${
                     i === currentIndex
-                      ? "w-5 bg-[#00A884]"
-                      : "w-2.5 bg-[#00A884]/30"
+                      ? "w-5 bg-[#8B5CF6]"
+                      : "w-2.5 bg-[#8B5CF6]/30"
                   }`}
                 />
               </button>
@@ -168,7 +168,7 @@ export function MemberCards({
 
           <button
             onClick={goNext}
-            className="rounded-full bg-[#00A884] px-4 py-2 text-[14px] font-bold text-white"
+            className="rounded-full bg-[#8B5CF6] px-4 py-2 text-[14px] font-bold text-white"
           >
             {currentIndex === activeProfiles.length - 1 ? "סיום" : "הבא"}
           </button>
@@ -209,7 +209,7 @@ function ProfileCard({
       />
       <button
         onClick={() => fileRef.current?.click()}
-        className="group relative flex h-20 w-20 items-center justify-center rounded-full bg-[#DFE5E7] ring-2 ring-[#00A884]/30 transition-transform hover:scale-105"
+        className="group relative flex h-20 w-20 items-center justify-center rounded-full bg-[#DFE5E7] ring-2 ring-[#8B5CF6]/30 transition-transform hover:scale-105"
       >
         {profile.photoUrl ? (
           <img
@@ -255,27 +255,27 @@ function ProfileCard({
               }
             }}
             autoFocus
-            className="w-full rounded-lg border border-[#00A884] bg-transparent px-2 py-1 text-center text-[18px] font-bold text-[#111B21] outline-none"
+            className="w-full rounded-lg border border-[#8B5CF6] bg-transparent px-2 py-1 text-center text-[18px] font-bold text-[#1E1B3A] outline-none"
           />
         ) : (
-          <h3 className="text-[18px] font-bold text-[#111B21]">
+          <h3 className="text-[18px] font-bold text-[#1E1B3A]">
             {profile.nickname}
           </h3>
         )}
-        <p className="mt-0.5 text-[14px] text-[#667781]">
+        <p className="mt-0.5 text-[14px] text-[#6B7194]">
           {profile.personalityEmoji} {profile.personalityTitle}
         </p>
       </div>
 
       {/* Summary */}
-      <div className="w-full rounded-xl bg-[#F0F2F5] px-4 py-3">
+      <div className="w-full rounded-xl bg-[#F0EEFF] px-4 py-3">
         <AnimatePresence mode="wait">
           <motion.p
             key={summary}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="text-center text-[14px] leading-relaxed text-[#111B21]"
+            className="text-center text-[14px] leading-relaxed text-[#1E1B3A]"
             dir="auto"
           >
             {summary}
@@ -312,7 +312,7 @@ function ProfileCard({
           {profile.topWords.map((w) => (
             <span
               key={w.word}
-              className="rounded-full bg-[#E7FCE2] px-2.5 py-0.5 text-[12px] font-medium text-[#1B4332]"
+              className="rounded-full bg-[#F0EEFF] px-2.5 py-0.5 text-[12px] font-medium text-[#4C1D95]"
             >
               {w.word} ({w.count})
             </span>
@@ -326,7 +326,7 @@ function ProfileCard({
           {profile.topEmojis.slice(0, 3).map((e) => (
             <span key={e.emoji} className="text-center">
               <span className="text-[20px]">{e.emoji}</span>
-              <span className="block text-[11px] text-[#667781]">{e.count}</span>
+              <span className="block text-[11px] text-[#6B7194]">{e.count}</span>
             </span>
           ))}
         </div>
@@ -334,8 +334,8 @@ function ProfileCard({
 
       {/* Sample message */}
       {profile.sampleMessages[0] && (
-        <div className="w-full rounded-lg rounded-tr-none bg-[#D9FDD3] px-4 py-2.5 shadow-sm">
-          <p className="text-[13px] leading-relaxed text-[#111B21]" dir="auto">
+        <div className="w-full rounded-lg rounded-tr-none bg-[#EDE9FE] px-4 py-2.5 shadow-sm">
+          <p className="text-[13px] leading-relaxed text-[#1E1B3A]" dir="auto">
             &ldquo;{profile.sampleMessages[0]}&rdquo;
           </p>
         </div>
@@ -350,7 +350,7 @@ function ProfileCard({
       <div className="flex gap-2">
         <button
           onClick={() => fileRef.current?.click()}
-          className="rounded-full bg-[#F0F2F5] px-3 py-1.5 text-[12px] font-medium text-[#111B21] transition-colors hover:bg-[#E4E6EB]"
+          className="rounded-full bg-[#F0EEFF] px-3 py-1.5 text-[12px] font-medium text-[#1E1B3A] transition-colors hover:bg-[#E0DBFF]"
         >
           תמונת פרופיל
         </button>
@@ -359,7 +359,7 @@ function ProfileCard({
             setEditingNick(true);
             setTimeout(() => nickRef.current?.focus(), 50);
           }}
-          className="rounded-full bg-[#F0F2F5] px-3 py-1.5 text-[12px] font-medium text-[#111B21] transition-colors hover:bg-[#E4E6EB]"
+          className="rounded-full bg-[#F0EEFF] px-3 py-1.5 text-[12px] font-medium text-[#1E1B3A] transition-colors hover:bg-[#E0DBFF]"
         >
           כינוי
         </button>
@@ -385,7 +385,7 @@ function VoicePlayer({ url }: { url: string }) {
   }, [playing]);
 
   return (
-    <div className="flex w-full items-center gap-3 rounded-full bg-[#F0F2F5] px-4 py-2">
+    <div className="flex w-full items-center gap-3 rounded-full bg-[#F0EEFF] px-4 py-2">
       <audio
         ref={audioRef}
         src={url}
@@ -394,7 +394,7 @@ function VoicePlayer({ url }: { url: string }) {
       />
       <button
         onClick={toggle}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#00A884] text-white"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#8B5CF6] text-white"
       >
         {playing ? (
           <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
@@ -415,7 +415,7 @@ function VoicePlayer({ url }: { url: string }) {
 /** Small stat badge */
 function StatPill({ icon, label }: { icon: string; label: string }) {
   return (
-    <div className="flex items-center gap-1.5 rounded-lg bg-[#F0F2F5] px-2.5 py-1.5 text-[12px] text-[#111B21]">
+    <div className="flex items-center gap-1.5 rounded-lg bg-[#F0EEFF] px-2.5 py-1.5 text-[12px] text-[#1E1B3A]">
       <span>{icon}</span>
       <span>{label}</span>
     </div>
@@ -434,7 +434,7 @@ function WaveformBars() {
       {heights.map((h, i) => (
         <div
           key={i}
-          className="h-3 w-1 rounded-full bg-[#00A884]/40"
+          className="h-3 w-1 rounded-full bg-[#8B5CF6]/40"
           style={{ height: `${h}px` }}
         />
       ))}

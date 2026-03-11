@@ -21,7 +21,7 @@ export function Superlatives({ roundResults, players }: SuperlativesProps) {
 
   return (
     <div className="w-full max-w-lg">
-      <p className="mb-3 text-center text-[13px] font-medium text-[#8B949E]">
+      <p className="mb-3 text-center text-[13px] font-medium text-[#9B96B0]">
         פרסים מיוחדים
       </p>
       <div className="flex gap-2 overflow-x-auto pb-2">
@@ -34,13 +34,13 @@ export function Superlatives({ roundResults, players }: SuperlativesProps) {
             className="flex min-w-[140px] shrink-0 flex-col items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-md"
           >
             <span className="text-[28px]">{award.emoji}</span>
-            <span className="text-[12px] font-bold text-[#F5C542]">
+            <span className="text-[12px] font-bold text-[#FBBF24]">
               {award.title}
             </span>
             <span className="text-[14px] font-medium text-white">
               {award.winner}
             </span>
-            <span className="text-[11px] text-[#8B949E]">
+            <span className="text-[11px] text-[#9B96B0]">
               {award.detail}
             </span>
           </motion.div>

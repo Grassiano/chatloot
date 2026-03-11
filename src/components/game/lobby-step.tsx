@@ -40,7 +40,7 @@ export function LobbyStep({ game, memberNames }: LobbyStepProps) {
       <div className="mx-auto max-w-2xl space-y-3">
         {/* Add players prompt */}
         <div className="flex justify-center">
-          <span className="rounded-lg bg-[#FFE9B2]/70 px-3 py-1.5 text-center text-[12px] text-[#54656F] shadow-sm">
+          <span className="rounded-lg bg-[#EDE9FE]/70 px-3 py-1.5 text-center text-[12px] text-[#6B7194] shadow-sm">
             הוסיפו את השחקנים שמשתתפים הערב
           </span>
         </div>
@@ -49,12 +49,12 @@ export function LobbyStep({ game, memberNames }: LobbyStepProps) {
         <div className="flex justify-start">
           <button
             onClick={addAllMembers}
-            className="rounded-lg rounded-tr-none bg-[#DCF8C6] p-3 shadow-sm transition-shadow hover:shadow-md"
+            className="rounded-lg rounded-tr-none bg-[#EDE9FE] p-3 shadow-sm transition-shadow hover:shadow-md"
           >
-            <p className="text-[12px] font-medium text-[#00A884]">ChatLoot</p>
-            <p className="text-[13.5px] text-[#111B21]">
+            <p className="text-[12px] font-medium text-[#8B5CF6]">ChatLoot</p>
+            <p className="text-[13.5px] text-[#1E1B3A]">
               מצאתי {memberNames.length} חברי קבוצה בצ׳אט.{" "}
-              <span className="font-medium text-[#00A884]">
+              <span className="font-medium text-[#8B5CF6]">
                 הוסף את כולם?
               </span>
             </p>
@@ -69,13 +69,13 @@ export function LobbyStep({ game, memberNames }: LobbyStepProps) {
               animate={{ opacity: 1, y: 0 }}
               className="flex justify-start"
             >
-              <div className="max-w-[90%] rounded-lg rounded-tr-none bg-[#DCF8C6] shadow-sm sm:max-w-[80%]">
+              <div className="max-w-[90%] rounded-lg rounded-tr-none bg-[#EDE9FE] shadow-sm sm:max-w-[80%]">
                 <div className="px-3 pt-3">
-                  <p className="text-[12px] font-medium text-[#00A884]">
+                  <p className="text-[12px] font-medium text-[#8B5CF6]">
                     שחקנים ({players.length})
                   </p>
                 </div>
-                <div className="mt-1 divide-y divide-[#c0e6a8]/50">
+                <div className="mt-1 divide-y divide-[#C4B5FD]/50">
                   {players.map((player) => (
                     <motion.div
                       key={player.id}
@@ -91,13 +91,13 @@ export function LobbyStep({ game, memberNames }: LobbyStepProps) {
                         >
                           {player.avatar}
                         </div>
-                        <span className="text-[14px] text-[#111B21]">
+                        <span className="text-[14px] text-[#1E1B3A]">
                           {player.name}
                         </span>
                       </div>
                       <button
                         onClick={() => game.removePlayer(player.id)}
-                        className="min-h-[44px] min-w-[44px] text-[12px] text-[#667781] hover:text-[#FF6B6B]"
+                        className="min-h-[44px] min-w-[44px] text-[12px] text-[#6B7194] hover:text-[#FF6B6B]"
                       >
                         הסר
                       </button>
@@ -105,7 +105,7 @@ export function LobbyStep({ game, memberNames }: LobbyStepProps) {
                   ))}
                 </div>
                 <div className="px-3 pb-2 pt-1">
-                  <p className="text-left text-[10.5px] text-[#667781]">
+                  <p className="text-left text-[10.5px] text-[#6B7194]">
                     עכשיו
                   </p>
                 </div>
@@ -123,12 +123,12 @@ export function LobbyStep({ game, memberNames }: LobbyStepProps) {
                 onChange={(e) => setNameInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addPlayer()}
                 placeholder="הוסף שחקן..."
-                className="flex-1 bg-transparent text-[14px] text-[#111B21] placeholder:text-[#667781] focus:outline-none"
+                className="flex-1 bg-transparent text-[14px] text-[#1E1B3A] placeholder:text-[#6B7194] focus:outline-none"
               />
               <button
                 onClick={addPlayer}
                 disabled={!nameInput.trim()}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#00A884] text-white transition-opacity disabled:opacity-30"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#8B5CF6] text-white transition-opacity disabled:opacity-30"
               >
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                   <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
@@ -147,7 +147,7 @@ export function LobbyStep({ game, memberNames }: LobbyStepProps) {
           >
             <button
               onClick={game.startGame}
-              className="rounded-2xl bg-[#00A884] px-8 py-4 text-[17px] font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95"
+              className="rounded-2xl bg-[#8B5CF6] px-8 py-4 text-[17px] font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95"
             >
               יאללה, מתחילים! 🎮
             </button>

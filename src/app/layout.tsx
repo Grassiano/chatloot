@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Rubik } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -8,6 +8,12 @@ const rubik = Rubik({
   subsets: ["latin", "hebrew"],
   weight: ["400", "500", "700", "900"],
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   title: "ChatLoot - צ'אטלוט | המשחק של הקבוצה",

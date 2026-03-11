@@ -1,4 +1,5 @@
 import type { ParsedChat } from "@/lib/parser/types";
+import { asMap } from "@/lib/parser/types";
 import type { EmojiMatchQuestion } from "../types";
 import { shuffleArray } from "@/lib/utils";
 
@@ -11,6 +12,8 @@ export function generateEmojiMatchQuestions(
   if (memberNames.length < 2) return [];
 
   // Collect members with top emojis
+  const memberStats = asMap(chat.stats.members);
+
   const membersWithEmojis: Array<{
     name: string;
     topEmoji: string;
@@ -18,7 +21,7 @@ export function generateEmojiMatchQuestions(
   }> = [];
 
   for (const member of chat.members) {
-    const stats = chat.stats.members.get(member.displayName);
+    const stats = memberStats.get(member.displayName);
     if (!stats || stats.topEmojis.length === 0) continue;
     membersWithEmojis.push({
       name: member.displayName,
@@ -53,7 +56,7 @@ export function generateEmojiMatchQuestions(
       });
     } else {
       // Type 2: "What's X's most used emoji?" — emoji options
-      const stats = chat.stats.members.get(member.name);
+      const stats = memberStats.get(member.name);
       if (!stats || stats.topEmojis.length === 0) continue;
 
       const correctEmoji = stats.topEmojis[0].emoji;

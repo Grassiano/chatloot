@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ParsedChat } from "@/lib/parser/types";
 import { generateGroupRoast } from "@/lib/wizard/personality";
@@ -34,9 +34,12 @@ const HEBREW_DAYS: Record<string, string> = {
 export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
   const [visibleIndex, setVisibleIndex] = useState(-1);
 
-  const roast = generateGroupRoast(chat);
+  const roast = useMemo(() => generateGroupRoast(chat), [chat]);
 
-  const dateStart = chat.stats.dateRange.start.toLocaleDateString("he-IL", {
+  const startDate = chat.stats.dateRange.start instanceof Date
+    ? chat.stats.dateRange.start
+    : new Date(chat.stats.dateRange.start);
+  const dateStart = startDate.toLocaleDateString("he-IL", {
     month: "long",
     year: "numeric",
   });
@@ -91,7 +94,7 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
               initial="hidden"
               animate="visible"
             >
-              <h1 className="text-[28px] font-bold text-[#111B21]">
+              <h1 className="text-[28px] font-bold text-[#1E1B3A]">
                 &ldquo;{chat.groupName}&rdquo;
               </h1>
             </motion.div>
@@ -108,9 +111,9 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
             >
               <AnimatedCounter
                 value={chat.stats.totalMessages}
-                className="text-[42px] font-black text-[#00A884] drop-shadow-[0_0_12px_rgba(0,168,132,0.4)]"
+                className="text-[42px] font-black text-[#8B5CF6] drop-shadow-[0_0_12px_rgba(139, 92, 246,0.4)]"
               />
-              <span className="text-[18px] text-[#667781]">הודעות</span>
+              <span className="text-[18px] text-[#6B7194]">הודעות</span>
             </motion.div>
           )}
 
@@ -122,7 +125,7 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
               initial="hidden"
               animate="visible"
             >
-              <p className="text-[16px] text-[#667781]">
+              <p className="text-[16px] text-[#6B7194]">
                 מאז {dateStart}
               </p>
             </motion.div>
@@ -136,7 +139,7 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
               initial="hidden"
               animate="visible"
             >
-              <p className="text-[20px] font-semibold text-[#111B21]">
+              <p className="text-[20px] font-semibold text-[#1E1B3A]">
                 {chat.stats.totalMembers} חברים
               </p>
             </motion.div>
@@ -151,13 +154,13 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
               animate="visible"
               className="flex flex-wrap justify-center gap-2"
             >
-              <span className="rounded-full bg-[#E7FCE2] px-3 py-1 text-[13px] font-medium text-[#1B4332]">
+              <span className="rounded-full bg-[#F0EEFF] px-3 py-1 text-[13px] font-medium text-[#4C1D95]">
                 {chat.stats.messagesPerDay} הודעות ביום
               </span>
-              <span className="rounded-full bg-[#E7FCE2] px-3 py-1 text-[13px] font-medium text-[#1B4332]">
+              <span className="rounded-full bg-[#F0EEFF] px-3 py-1 text-[13px] font-medium text-[#4C1D95]">
                 שיא: {String(chat.stats.peakHour).padStart(2, "0")}:00
               </span>
-              <span className="rounded-full bg-[#E7FCE2] px-3 py-1 text-[13px] font-medium text-[#1B4332]">
+              <span className="rounded-full bg-[#F0EEFF] px-3 py-1 text-[13px] font-medium text-[#4C1D95]">
                 יום {HEBREW_DAYS[chat.stats.busiestDay] ?? chat.stats.busiestDay}
               </span>
             </motion.div>
@@ -171,7 +174,7 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
               initial="hidden"
               animate="visible"
             >
-              <p className="text-[16px] text-[#667781]">
+              <p className="text-[16px] text-[#6B7194]">
                 {chat.stats.totalDays.toLocaleString()} ימים של שיחות
               </p>
             </motion.div>
@@ -184,9 +187,9 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
               variants={itemVariants}
               initial="hidden"
               animate="visible"
-              className="rounded-xl bg-[#D9FDD3]/90 px-5 py-3 shadow-md backdrop-blur-sm"
+              className="rounded-xl bg-[#EDE9FE]/90 px-5 py-3 shadow-md backdrop-blur-sm"
             >
-              <p className="text-[15px] font-medium text-[#111B21]">
+              <p className="text-[15px] font-medium text-[#1E1B3A]">
                 {roast}
               </p>
             </motion.div>
@@ -200,7 +203,7 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
               initial="hidden"
               animate="visible"
             >
-              <p className="text-[14px] italic text-[#667781]">
+              <p className="text-[14px] italic text-[#6B7194]">
                 קראתי הכל. אני יודע דברים.
               </p>
             </motion.div>
@@ -214,7 +217,7 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           onClick={onComplete}
-          className="absolute bottom-8 rounded-full bg-[#00A884] px-8 py-3 text-[15px] font-bold text-white shadow-lg transition-transform active:scale-95"
+          className="absolute bottom-8 rounded-full bg-[#8B5CF6] px-8 py-3 text-[15px] font-bold text-white shadow-lg transition-transform active:scale-95"
         >
           יאללה, קדימה →
         </motion.button>
@@ -223,7 +226,7 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.5 }}
           transition={{ delay: 2 }}
-          className="absolute bottom-8 text-[12px] text-[#667781]"
+          className="absolute bottom-8 text-[12px] text-[#6B7194]"
         >
           לחצו לדלג
         </motion.p>

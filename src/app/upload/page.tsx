@@ -94,7 +94,7 @@ export default function UploadPage() {
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 flex items-center gap-3 bg-[#075E54] px-4 py-2.5 text-white shadow-md">
+      <header className="sticky top-0 z-50 flex items-center gap-3 bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] px-4 py-2.5 text-white shadow-md">
         <Link
           href="/"
           className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-white/10"
@@ -113,7 +113,7 @@ export default function UploadPage() {
         <div className="mx-auto max-w-2xl">
           {/* Instruction */}
           <div className="mb-4 flex justify-center">
-            <span className="rounded-lg bg-[#FFE9B2]/70 px-3 py-1.5 text-center text-[12px] leading-relaxed text-[#54656F] shadow-sm">
+            <span className="rounded-lg bg-[#EDE9FE]/70 px-3 py-1.5 text-center text-[12px] leading-relaxed text-[#6B7194] shadow-sm">
               איך מייצאים? נכנסים לקבוצה → שלוש נקודות → עוד → ייצוא צ׳אט →
               כולל מדיה
             </span>
@@ -136,7 +136,7 @@ export default function UploadPage() {
                 >
                   <div
                     onClick={() => fileRef.current?.click()}
-                    className="group relative max-w-[85%] cursor-pointer rounded-lg rounded-tr-none bg-[#DCF8C6] p-4 shadow-sm transition-shadow hover:shadow-md sm:max-w-[70%]"
+                    className="group relative max-w-[85%] cursor-pointer rounded-lg rounded-tr-none bg-[#EDE9FE] p-4 shadow-sm transition-shadow hover:shadow-md sm:max-w-[70%]"
                   >
                     {/* Hidden file inputs */}
                     <input
@@ -157,7 +157,7 @@ export default function UploadPage() {
 
                     {/* ZIP icon */}
                     <div className="mb-3 flex items-center gap-3 rounded-lg bg-[#d3f0b5] p-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#00A884] text-white">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#8B5CF6] text-white">
                         <svg
                           viewBox="0 0 24 24"
                           width="22"
@@ -194,7 +194,7 @@ export default function UploadPage() {
                       עכשיו
                     </p>
 
-                    <div className="absolute inset-0 rounded-lg border-2 border-transparent transition-colors group-hover:border-[#00A884]/30" />
+                    <div className="absolute inset-0 rounded-lg border-2 border-transparent transition-colors group-hover:border-[#8B5CF6]/30" />
                   </div>
                 </div>
 
@@ -204,12 +204,12 @@ export default function UploadPage() {
                     onClick={() => folderRef.current?.click()}
                     className="max-w-[85%] rounded-lg rounded-tr-none bg-white p-3 text-right shadow-sm transition-shadow hover:shadow-md sm:max-w-[70%]"
                   >
-                    <p className="text-[12px] font-medium text-[#00A884]">
+                    <p className="text-[12px] font-medium text-[#8B5CF6]">
                       ChatLoot
                     </p>
                     <p className="text-[13.5px] text-loot-ink">
                       כבר פתחתם את ה-ZIP?{" "}
-                      <span className="font-medium text-[#00A884] underline decoration-[#00A884]/30 underline-offset-2">
+                      <span className="font-medium text-[#8B5CF6] underline decoration-[#8B5CF6]/30 underline-offset-2">
                         העלו תיקייה שלמה
                       </span>
                     </p>
@@ -221,7 +221,7 @@ export default function UploadPage() {
 
                 {/* Privacy note */}
                 <div className="flex justify-center pt-1">
-                  <span className="rounded-lg bg-[#FFE9B2]/50 px-3 py-1 text-center text-[11px] text-[#54656F]">
+                  <span className="rounded-lg bg-[#EDE9FE]/50 px-3 py-1 text-center text-[11px] text-[#6B7194]">
                     🔒 הכל רץ מקומית בדפדפן. אנחנו לא שומרים כלום.
                   </span>
                 </div>
@@ -236,8 +236,8 @@ export default function UploadPage() {
                 exit={{ opacity: 0, y: -10 }}
                 className="flex justify-start"
               >
-                <div className="max-w-[80%] rounded-lg rounded-tr-none bg-[#DCF8C6] p-4 shadow-sm">
-                  <p className="mb-2 text-[12px] font-medium text-[#00A884]">
+                <div className="max-w-[80%] rounded-lg rounded-tr-none bg-[#EDE9FE] p-4 shadow-sm">
+                  <p className="mb-2 text-[12px] font-medium text-[#8B5CF6]">
                     ChatLoot
                   </p>
                   <div className="mb-2 flex items-center gap-2">
@@ -248,7 +248,7 @@ export default function UploadPage() {
                         duration: 2,
                         ease: "linear",
                       }}
-                      className="h-5 w-5 rounded-full border-2 border-[#00A884] border-t-transparent"
+                      className="h-5 w-5 rounded-full border-2 border-[#8B5CF6] border-t-transparent"
                     />
                     <p className="text-[14px] font-medium text-loot-ink">
                       {state === "extracting"
@@ -286,7 +286,7 @@ export default function UploadPage() {
                       setParsedChat(null);
                       setErrorMsg("");
                     }}
-                    className="rounded-full bg-[#00A884] px-4 py-1.5 text-[13px] font-medium text-white"
+                    className="rounded-full bg-[#8B5CF6] px-4 py-1.5 text-[13px] font-medium text-white"
                   >
                     נסו שוב
                   </button>

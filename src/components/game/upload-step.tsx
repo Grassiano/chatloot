@@ -133,7 +133,7 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#075E54]/80 backdrop-blur-lg"
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#8B5CF6]/80 backdrop-blur-lg"
             style={{ WebkitBackdropFilter: "blur(16px)" }}
           >
             <motion.div
@@ -168,14 +168,14 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
 
       <div className="mx-auto max-w-2xl">
         <div className="mb-4 flex justify-center">
-          <span className="rounded-lg bg-[#FFE9B2]/70 px-3 py-1.5 text-center text-[12px] text-[#54656F] shadow-sm">
+          <span className="rounded-lg bg-[#EDE9FE]/70 px-3 py-1.5 text-center text-[12px] text-[#6B7194] shadow-sm">
             העלו את הצ׳אט כדי להתחיל לשחק
           </span>
         </div>
 
         {isLoading ? (
           <div className="flex justify-start">
-            <div className="w-full max-w-sm rounded-lg rounded-tr-none bg-[#D9FDD3] p-4 shadow-sm">
+            <div className="w-full max-w-sm rounded-lg rounded-tr-none bg-[#EDE9FE] p-4 shadow-sm">
               {/* Stage label */}
               <AnimatePresence mode="wait">
                 <motion.p
@@ -183,7 +183,7 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
-                  className="mb-3 text-[14px] font-medium text-[#111B21]"
+                  className="mb-3 text-[14px] font-medium text-[#1E1B3A]"
                 >
                   {extractionProgress
                     ? STAGE_LABELS[extractionProgress.stage]
@@ -211,16 +211,16 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
                   return (
                     <div
                       key={stage}
-                      className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-[#00A884]/20"
+                      className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-[#8B5CF6]/20"
                     >
                       {isCompleted && (
-                        <div className="absolute inset-0 rounded-full bg-[#00A884]" />
+                        <div className="absolute inset-0 rounded-full bg-[#8B5CF6]" />
                       )}
                       {isCurrent && (
                         extractionProgress?.total ? (
                           <motion.div
                             key={`bar-${stage}`}
-                            className="absolute inset-y-0 left-0 rounded-full bg-[#00A884]"
+                            className="absolute inset-y-0 left-0 rounded-full bg-[#8B5CF6]"
                             initial={{ width: "5%" }}
                             animate={{ width: `${fillPercent}%` }}
                             transition={{ duration: 0.3, ease: "easeOut" }}
@@ -228,7 +228,7 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
                         ) : (
                           <motion.div
                             key={`shimmer-${stage}`}
-                            className="absolute inset-y-0 w-[40%] rounded-full bg-gradient-to-r from-transparent via-[#00A884] to-transparent"
+                            className="absolute inset-y-0 w-[40%] rounded-full bg-gradient-to-r from-transparent via-[#8B5CF6] to-transparent"
                             animate={{ x: ["-100%", "350%"] }}
                             transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
                           />
@@ -242,7 +242,7 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
               {/* File counter during media extraction */}
               {extractionProgress?.stage === "extracting_media" &&
                 extractionProgress.total > 0 && (
-                  <p className="text-[12px] tabular-nums text-[#667781]">
+                  <p className="text-[12px] tabular-nums text-[#6B7194]">
                     {extractionProgress.current.toLocaleString()} /{" "}
                     {extractionProgress.total.toLocaleString()} קבצים
                   </p>
@@ -250,7 +250,7 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
 
               {/* File name */}
               {fileName && !extractionProgress && (
-                <p className="text-[12px] text-[#667781]" dir="auto">
+                <p className="text-[12px] text-[#6B7194]" dir="auto">
                   {fileName}
                 </p>
               )}
@@ -286,11 +286,11 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
             />
 
             <div className="flex justify-start">
-              <div className="max-w-[90%] rounded-lg rounded-tr-none bg-[#D9FDD3] p-4 shadow-sm sm:max-w-[75%]">
-                <p className="mb-3 text-[14px] font-medium text-[#111B21]">
+              <div className="max-w-[90%] rounded-lg rounded-tr-none bg-[#EDE9FE] p-4 shadow-sm sm:max-w-[75%]">
+                <p className="mb-3 text-[14px] font-medium text-[#1E1B3A]">
                   העלו את הייצוא מוואטסאפ
                 </p>
-                <p className="mb-4 text-[12px] text-[#667781]">
+                <p className="mb-4 text-[12px] text-[#6B7194]">
                   גררו לכאן או בחרו קובץ / תיקייה
                 </p>
 
@@ -300,7 +300,7 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
                     className="flex items-center gap-3 rounded-lg bg-white/80 p-3 shadow-sm backdrop-blur-md transition-all hover:bg-white/90 hover:shadow-md active:scale-[0.98]"
                     style={{ WebkitBackdropFilter: "blur(12px)" }}
                   >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#00A884] text-white">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#8B5CF6] text-white">
                       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="7 10 12 15 17 10" />
@@ -308,10 +308,10 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
                       </svg>
                     </div>
                     <div className="text-right">
-                      <p className="text-[13px] font-medium text-[#111B21]">
+                      <p className="text-[13px] font-medium text-[#1E1B3A]">
                         קובץ ZIP או TXT
                       </p>
-                      <p className="text-[11px] text-[#667781]">
+                      <p className="text-[11px] text-[#6B7194]">
                         הייצוא מוואטסאפ כקובץ בודד
                       </p>
                     </div>
@@ -322,16 +322,16 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
                     className="flex items-center gap-3 rounded-lg bg-white/80 p-3 shadow-sm backdrop-blur-md transition-all hover:bg-white/90 hover:shadow-md active:scale-[0.98]"
                     style={{ WebkitBackdropFilter: "blur(12px)" }}
                   >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#00A884] text-white">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#8B5CF6] text-white">
                       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                       </svg>
                     </div>
                     <div className="text-right">
-                      <p className="text-[13px] font-medium text-[#111B21]">
+                      <p className="text-[13px] font-medium text-[#1E1B3A]">
                         תיקייה
                       </p>
-                      <p className="text-[11px] text-[#667781]">
+                      <p className="text-[11px] text-[#6B7194]">
                         התיקייה שנוצרה מהייצוא
                       </p>
                     </div>
@@ -345,10 +345,10 @@ export function UploadStep({ onUpload, extractionProgress }: UploadStepProps) {
         {error && (
           <div className="mt-3 flex justify-start">
             <div className="rounded-lg rounded-tr-none bg-white p-3 shadow-sm">
-              <p className="text-[13px] text-[#111B21]">{error}</p>
+              <p className="text-[13px] text-[#1E1B3A]">{error}</p>
               <button
                 onClick={() => setError("")}
-                className="mt-2 rounded-full bg-[#00A884] px-3 py-1 text-[12px] font-medium text-white"
+                className="mt-2 rounded-full bg-[#8B5CF6] px-3 py-1 text-[12px] font-medium text-white"
               >
                 נסו שוב
               </button>

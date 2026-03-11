@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import type { ParsedChat } from "@/lib/parser/types";
+import { asMap } from "@/lib/parser/types";
 import type { WhoSaidItQuestion } from "@/lib/game/types";
 import type { AnalysisResult } from "@/lib/ai/analyze-chat";
 import type {
@@ -74,7 +75,7 @@ export function useWizard(): UseWizardReturn {
       );
 
       return chat.members.map((member) => {
-        const stats = chat.stats.members.get(member.displayName);
+        const stats = asMap(chat.stats.members).get(member.displayName);
         const personality = personalities.get(member.displayName);
         const samples = pickSampleMessages(chat, member.displayName);
         const voice = findMemberVoiceNote(chat, member.displayName);

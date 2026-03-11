@@ -1,4 +1,5 @@
 import type { ParsedChat } from "@/lib/parser/types";
+import { asMap } from "@/lib/parser/types";
 import type { WordCloudQuestion } from "../types";
 import { shuffleArray } from "@/lib/utils";
 
@@ -17,11 +18,13 @@ export function generateWordCloudQuestions(
     count: number;
   }> = [];
 
+  const memberStats = asMap(chat.stats.members);
+
   // Build a global word→member map to find unique words
   const wordOwners = new Map<string, string[]>();
 
   for (const member of chat.members) {
-    const stats = chat.stats.members.get(member.displayName);
+    const stats = memberStats.get(member.displayName);
     if (!stats || stats.topWords.length === 0) continue;
 
     for (const tw of stats.topWords) {
@@ -33,7 +36,7 @@ export function generateWordCloudQuestions(
 
   // Pick members whose #1 word is unique to them (or at least rare)
   for (const member of chat.members) {
-    const stats = chat.stats.members.get(member.displayName);
+    const stats = memberStats.get(member.displayName);
     if (!stats || stats.topWords.length === 0) continue;
 
     // Find the most distinctive word (fewest other owners)

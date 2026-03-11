@@ -1,4 +1,5 @@
 import type { ParsedChat } from "@/lib/parser/types";
+import { asMap } from "@/lib/parser/types";
 import type { GhostDetectiveQuestion } from "../types";
 import { shuffleArray } from "@/lib/utils";
 
@@ -16,8 +17,10 @@ export function generateGhostDetectiveQuestions(
     days: number;
   }> = [];
 
+  const memberStats = asMap(chat.stats.members);
+
   for (const member of chat.members) {
-    const stats = chat.stats.members.get(member.displayName);
+    const stats = memberStats.get(member.displayName);
     if (!stats || stats.longestGhostDays < 7) continue;
 
     ghosts.push({

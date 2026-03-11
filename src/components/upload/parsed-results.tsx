@@ -1,8 +1,9 @@
 "use client";
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { t } from "@/lib/i18n/he";
-import type { ParsedChat } from "@/lib/parser/types";
+import { type ParsedChat, asMap } from "@/lib/parser/types";
 import Link from "next/link";
 
 interface ParsedResultsProps {
@@ -22,8 +23,8 @@ function formatNumber(n: number): string {
 }
 
 const AVATAR_COLORS = [
-  "#E2A829",
-  "#00A884",
+  "#FBBF24",
+  "#8B5CF6",
   "#FF6B6B",
   "#7C5CFC",
   "#F59E0B",
@@ -40,25 +41,30 @@ export function ParsedResults({ chat }: ParsedResultsProps) {
   // Find night owl and emoji king
   let nightOwl = { name: "", count: 0 };
   let emojiKing = { name: "", count: 0 };
-  for (const [name, ms] of stats.members) {
+  const memberStatsMap = asMap(stats.members);
+  for (const [name, ms] of memberStatsMap) {
     if (ms.nightMessages > nightOwl.count)
       nightOwl = { name, count: ms.nightMessages };
     if (ms.emojiCount > emojiKing.count)
       emojiKing = { name, count: ms.emojiCount };
   }
 
-  // Get random funny messages for preview
-  const sampleMessages = messages
-    .filter(
-      (m) =>
-        m.author !== null &&
-        m.message !== "<Media omitted>" &&
-        !m.message.includes("<attached:") &&
-        m.message.length > 8 &&
-        m.message.length < 150
-    )
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 4);
+  // Get random funny messages for preview (memoized so they don't reshuffle on re-render)
+  const sampleMessages = useMemo(
+    () =>
+      messages
+        .filter(
+          (m) =>
+            m.author !== null &&
+            m.message !== "<Media omitted>" &&
+            !m.message.includes("<attached:") &&
+            m.message.length > 8 &&
+            m.message.length < 150
+        )
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 4),
+    [messages]
+  );
 
   return (
     <div className="space-y-2">
@@ -69,8 +75,8 @@ export function ParsedResults({ chat }: ParsedResultsProps) {
         transition={{ type: "spring", stiffness: 200, damping: 20 }}
         className="flex justify-center py-2"
       >
-        <div className="rounded-lg bg-[#FFE9B2]/80 px-4 py-2 text-center shadow-sm">
-          <p className="text-[13px] font-medium text-[#54656F]">
+        <div className="rounded-lg bg-[#EDE9FE]/80 px-4 py-2 text-center shadow-sm">
+          <p className="text-[13px] font-medium text-[#6B7194]">
             {groupName ? `"${groupName}"` : "הצ׳אט"} נטען בהצלחה
           </p>
         </div>
@@ -83,8 +89,8 @@ export function ParsedResults({ chat }: ParsedResultsProps) {
         transition={{ delay: 0.2 }}
         className="flex justify-start"
       >
-        <div className="max-w-[90%] rounded-lg rounded-tr-none bg-[#DCF8C6] p-3 shadow-sm sm:max-w-[80%]">
-          <p className="mb-2 text-[12px] font-medium text-[#00A884]">
+        <div className="max-w-[90%] rounded-lg rounded-tr-none bg-[#EDE9FE] p-3 shadow-sm sm:max-w-[80%]">
+          <p className="mb-2 text-[12px] font-medium text-[#8B5CF6]">
             ChatLoot
           </p>
 
@@ -115,7 +121,7 @@ export function ParsedResults({ chat }: ParsedResultsProps) {
             </div>
           </div>
 
-          <div className="my-2 border-t border-[#c0e6a8]" />
+          <div className="my-2 border-t border-[#C4B5FD]" />
 
           {/* Quick awards — one-liners */}
           <div className="space-y-1 text-[13px]">
@@ -164,17 +170,17 @@ export function ParsedResults({ chat }: ParsedResultsProps) {
         transition={{ delay: 0.5 }}
         className="flex justify-start"
       >
-        <div className="max-w-[90%] rounded-lg rounded-tr-none bg-[#DCF8C6] shadow-sm sm:max-w-[80%]">
+        <div className="max-w-[90%] rounded-lg rounded-tr-none bg-[#EDE9FE] shadow-sm sm:max-w-[80%]">
           <div className="px-3 pt-3">
-            <p className="text-[12px] font-medium text-[#00A884]">ChatLoot</p>
+            <p className="text-[12px] font-medium text-[#8B5CF6]">ChatLoot</p>
             <p className="mt-0.5 text-[13.5px] text-loot-ink">
               זיהיתי {stats.totalMembers} חברי קבוצה:
             </p>
           </div>
 
-          <div className="mt-2 divide-y divide-[#c0e6a8]/50">
+          <div className="mt-2 divide-y divide-[#C4B5FD]/50">
             {members.slice(0, 10).map((member, i) => {
-              const ms = stats.members.get(member.displayName);
+              const ms = memberStatsMap.get(member.displayName);
               const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
               return (
                 <motion.div
@@ -230,7 +236,7 @@ export function ParsedResults({ chat }: ParsedResultsProps) {
         transition={{ delay: 0.8 }}
         className="flex justify-center py-1"
       >
-        <span className="rounded-lg bg-[#FFE9B2]/70 px-3 py-1 text-[11.5px] text-[#54656F] shadow-sm">
+        <span className="rounded-lg bg-[#EDE9FE]/70 px-3 py-1 text-[11.5px] text-[#6B7194] shadow-sm">
           הנה טעימה מהצ׳אט שלכם
         </span>
       </motion.div>
@@ -254,7 +260,7 @@ export function ParsedResults({ chat }: ParsedResultsProps) {
               className={`max-w-[80%] rounded-lg p-2.5 shadow-sm ${
                 isEven
                   ? "rounded-tl-none bg-white"
-                  : "rounded-tr-none bg-[#DCF8C6]"
+                  : "rounded-tr-none bg-[#EDE9FE]"
               }`}
             >
               <p className="text-[12px] font-medium" style={{ color }}>
@@ -283,7 +289,7 @@ export function ParsedResults({ chat }: ParsedResultsProps) {
       >
         <Link
           href="/play"
-          className="group flex items-center gap-3 rounded-2xl bg-[#00A884] px-6 py-4 text-white shadow-lg transition-all hover:shadow-xl active:scale-[0.98]"
+          className="group flex items-center gap-3 rounded-2xl bg-[#8B5CF6] px-6 py-4 text-white shadow-lg transition-all hover:shadow-xl active:scale-[0.98]"
         >
           <span className="text-[16px] font-bold">
             {t("setup.members.continue")}

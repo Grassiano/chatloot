@@ -168,8 +168,8 @@ export const MODE_DESCRIPTIONS: Record<GameMode, string> = {
 export const AVAILABLE_MODES: GameMode[] = ["who_said_it"];
 
 export const PLAYER_COLORS = [
-  "#E2A829",
-  "#00A884",
+  "#FBBF24",
+  "#8B5CF6",
   "#FF6B6B",
   "#7C5CFC",
   "#F59E0B",

@@ -46,82 +46,83 @@
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
 
-  /* ChatLoot palette — warm, not the typical cold purple */
-  --color-loot-green: #25D366;
-  --color-loot-green-dark: #128C7E;
-  --color-loot-bg: #ECE5DD;
-  --color-loot-chat-bg: #E2DDD5;
-  --color-loot-bubble-out: #DCF8C6;
+  /* ChatLoot brand palette — Bold + Playful Gradients */
+  --color-loot-violet: #8B5CF6;
+  --color-loot-pink: #EC4899;
+  --color-loot-mint: #34D399;
+  --color-loot-bg: #F8F7FF;
+  --color-loot-chat-bg: #F3F0FF;
+  --color-loot-bubble-out: #EDE9FE;
   --color-loot-bubble-in: #ffffff;
-  --color-loot-header: #075E54;
-  --color-loot-gold: #E2A829;
-  --color-loot-gold-soft: #F5DEB3;
-  --color-loot-ink: #111B21;
-  --color-loot-ink-secondary: #667781;
-  --color-loot-teal-deep: #00A884;
-  --color-loot-coral: #FF6B6B;
+  --color-loot-header: #8B5CF6;
+  --color-loot-gold: #FBBF24;
+  --color-loot-gold-soft: #FEF3C7;
+  --color-loot-ink: #1E1B3A;
+  --color-loot-ink-secondary: #6B7194;
+  --color-loot-teal-deep: #8B5CF6;
+  --color-loot-coral: #F43F5E;
   --color-loot-purple: #7C5CFC;
   --color-loot-amber: #F59E0B;
 }
 
 :root {
   --radius: 0.5rem;
-  --background: #ECE5DD;
-  --foreground: #111B21;
+  --background: #FAFAFE;
+  --foreground: #1E1B3A;
   --card: #ffffff;
-  --card-foreground: #111B21;
+  --card-foreground: #1E1B3A;
   --popover: #ffffff;
-  --popover-foreground: #111B21;
-  --primary: #00A884;
+  --popover-foreground: #1E1B3A;
+  --primary: #8B5CF6;
   --primary-foreground: #ffffff;
-  --secondary: #F0F2F5;
-  --secondary-foreground: #111B21;
-  --muted: #F0F2F5;
-  --muted-foreground: #667781;
-  --accent: #E2A829;
-  --accent-foreground: #111B21;
-  --destructive: #F44336;
-  --border: #E9EDEF;
-  --input: #E9EDEF;
-  --ring: #00A884;
-  --chart-1: #00A884;
-  --chart-2: #E2A829;
-  --chart-3: #7C5CFC;
-  --chart-4: #FF6B6B;
-  --chart-5: #128C7E;
+  --secondary: #F0EEFF;
+  --secondary-foreground: #1E1B3A;
+  --muted: #F0EEFF;
+  --muted-foreground: #6B7194;
+  --accent: #F59E0B;
+  --accent-foreground: #1E1B3A;
+  --destructive: #F43F5E;
+  --border: #E8E4F8;
+  --input: #E8E4F8;
+  --ring: #8B5CF6;
+  --chart-1: #8B5CF6;
+  --chart-2: #EC4899;
+  --chart-3: #34D399;
+  --chart-4: #F43F5E;
+  --chart-5: #FBBF24;
   --sidebar: #ffffff;
-  --sidebar-foreground: #111B21;
-  --sidebar-primary: #00A884;
+  --sidebar-foreground: #1E1B3A;
+  --sidebar-primary: #8B5CF6;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #F0F2F5;
-  --sidebar-accent-foreground: #111B21;
-  --sidebar-border: #E9EDEF;
-  --sidebar-ring: #00A884;
+  --sidebar-accent: #F0EEFF;
+  --sidebar-accent-foreground: #1E1B3A;
+  --sidebar-border: #E8E4F8;
+  --sidebar-ring: #8B5CF6;
 }
 
-/* Game mode overrides */
+/* Game mode overrides — violet-tinted dark themes */
 [data-mode="who-said-it"] {
-  --background: #0A0A0F;
-  --foreground: #F0F6FC;
-  --card: #161B22;
-  --card-foreground: #F0F6FC;
-  --primary: #F5C542;
-  --primary-foreground: #0A0A0F;
-  --muted: #21262D;
-  --muted-foreground: #8B949E;
-  --border: #30363D;
+  --background: #0F0B1E;
+  --foreground: #F0EEFF;
+  --card: #1A1533;
+  --card-foreground: #F0EEFF;
+  --primary: #FBBF24;
+  --primary-foreground: #0F0B1E;
+  --muted: #252040;
+  --muted-foreground: #9B96B0;
+  --border: #352F55;
 }
 
 [data-mode="chat-awards"] {
-  --background: #0F0A1A;
+  --background: #0F0B1E;
   --foreground: #F5F0FF;
-  --card: #1A1230;
+  --card: #1A1533;
   --card-foreground: #F5F0FF;
-  --primary: #E2A829;
-  --primary-foreground: #0F0A1A;
-  --muted: #1A1230;
-  --muted-foreground: #9B8EC4;
-  --border: #2D2450;
+  --primary: #FBBF24;
+  --primary-foreground: #0F0B1E;
+  --muted: #1A1533;
+  --muted-foreground: #9B96B0;
+  --border: #352F55;
 }
 
 [data-mode="time-machine"] {
@@ -162,10 +163,10 @@
   --border: #3F1618;
 }
 
-/* WhatsApp-style chat wallpaper pattern */
+/* Chat wallpaper — lavender confetti pattern */
 .chat-wallpaper {
-  background-color: #E2DDD5;
-  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c8c3bb' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  background-color: #F3F0FF;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%238B5CF6' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
 
 /* Noise texture overlay for depth */
@@ -188,6 +189,10 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-rubik), sans-serif;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
 }
 
@@ -201,32 +206,38 @@ button, a, input, [role="button"] {
   touch-action: manipulation;
 }
 
-/* Glassmorphism utilities */
+/* Glassmorphism utilities — violet-tinted */
 .glass-light {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(139, 92, 246, 0.1);
 }
 
 .glass-dark {
-  background: rgba(22, 27, 34, 0.7);
+  background: rgba(26, 21, 51, 0.7);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.12);
 }
 
-/* Glow utilities */
-.glow-teal {
-  box-shadow: 0 0 20px rgba(0, 168, 132, 0.2);
+/* Glow utilities — brand violet */
+.glow-primary {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
 }
 
 .glow-gold {
-  box-shadow: 0 0 20px rgba(245, 197, 66, 0.2);
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
 }
 
-.glow-teal-strong {
-  box-shadow: 0 4px 20px rgba(0, 168, 132, 0.4);
+.glow-primary-strong {
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+}
+
+/* Text shimmer keyframe for TextShimmer component */
+@keyframes text-shimmer {
+  0%, 100% { background-position: 200% center; }
+  50% { background-position: 0% center; }
 }
 
 /* Respect reduced motion */
@@ -238,7 +249,7 @@ button, a, input, [role="button"] {
   }
 }
 
-/* Custom scrollbar that doesn't look default */
+/* Custom scrollbar — violet tinted */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -246,6 +257,6 @@ button, a, input, [role="button"] {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #c5c5c5;
+  background: #C4B5FD;
   border-radius: 3px;
 }

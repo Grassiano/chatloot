@@ -95,7 +95,7 @@ export async function generateShareImage(data: ShareData): Promise<Blob> {
 
   // Group name + rounds
   ctx.textAlign = "center";
-  ctx.fillStyle = "#8B949E";
+  ctx.fillStyle = "#9B96B0";
   ctx.font = "14px -apple-system, sans-serif";
   if (data.groupName) {
     ctx.fillText(`"${data.groupName}" · ${data.totalRounds} סיבובים`, CARD_W / 2, CARD_H - 80);

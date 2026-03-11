@@ -99,6 +99,53 @@ export const he = {
   "ai.skip": "דלגו ושחקו עם בחירה רנדומלית",
   "ai.enhanced": "שאלות מבוססות AI",
 
+  // Home
+  "home.title": "צ׳אטלוט",
+  "home.subtitle": "המשחק של הקבוצה שלכם",
+  "home.gm.title": "מנחה",
+  "home.gm.description": "העלו צ׳אט וצרו משחק חדש",
+  "home.player.title": "שחקן",
+  "home.player.description": "הצטרפו למשחק קיים",
+  "home.solo.title": "משחק סולו",
+  "home.solo.description": "שחקו לבד ללא חדר",
+  "home.quick_join": "קוד חדר",
+  "home.quick_join.button": "הצטרף",
+  "home.how_it_works": "איך זה עובד?",
+  "home.or": "או",
+
+  // Room
+  "room.creating": "יוצר חדר...",
+  "room.code": "קוד חדר",
+  "room.share_link": "שתף קישור",
+  "room.copy_code": "העתק קוד",
+  "room.copied": "הועתק!",
+  "room.not_found": "חדר לא נמצא",
+  "room.expired": "החדר פג תוקף",
+
+  // Lobby (room)
+  "lobby.qr.title": "סרקו להצטרפות",
+  "lobby.mode.title": "בחרו מצב משחק",
+  "lobby.mode.party": "מצב מסיבה",
+  "lobby.mode.party.desc": "כולם מסביב למסך אחד",
+  "lobby.mode.remote": "מצב מרחוק",
+  "lobby.mode.remote.desc": "כל שחקן עונה מהטלפון שלו",
+  "lobby.start_disabled": "צריך לפחות 2 שחקנים ומצב משחק",
+  "lobby.player_joined": "הצטרף למשחק!",
+
+  // Join
+  "join.title": "הצטרפות למשחק",
+  "join.enter_code": "הכניסו את קוד החדר",
+  "join.enter_name": "איך קוראים לכם?",
+  "join.name_placeholder": "השם שלכם",
+  "join.button": "הצטרף!",
+  "join.checking": "בודק חדר...",
+  "join.invalid_code": "קוד לא תקין",
+  "join.room_info": "חדר של",
+
+  // Spectator
+  "spectator.title": "המשחק רץ על מסך המנחה",
+  "spectator.subtitle": "עקבו אחרי הניקוד שלכם כאן",
+
   // Common
   "common.loading": "טוען...",
   "common.error": "שגיאה",

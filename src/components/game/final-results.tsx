@@ -59,7 +59,7 @@ export function FinalResults({ game, memberPhotos, groupName, onNewGame }: Final
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-52px)] flex-col bg-[radial-gradient(ellipse_at_top,#1a1a2e,#0A0A0F)] text-white">
+    <div className="flex min-h-[calc(100vh-52px)] flex-col bg-[radial-gradient(ellipse_at_top,#1a1a2e,#0F0B1E)] text-white">
       <Confetti active={showConfetti} count={80} duration={4000} />
 
       <div className="flex flex-1 flex-col items-center px-4 py-8">
@@ -67,7 +67,7 @@ export function FinalResults({ game, memberPhotos, groupName, onNewGame }: Final
         <motion.p
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-2 text-[14px] font-medium text-[#8B949E]"
+          className="mb-2 text-[14px] font-medium text-[#9B96B0]"
         >
           {settings.totalRounds} סיבובים הסתיימו!
         </motion.p>
@@ -92,7 +92,7 @@ export function FinalResults({ game, memberPhotos, groupName, onNewGame }: Final
             >
               👑
             </motion.div>
-            <p className="text-[13px] text-[#8B949E]">המנצח/ת הגדול/ה</p>
+            <p className="text-[13px] text-[#9B96B0]">המנצח/ת הגדול/ה</p>
             <p
               className="mt-1 text-[32px] font-black"
               style={{ color: winner.color }}
@@ -103,7 +103,7 @@ export function FinalResults({ game, memberPhotos, groupName, onNewGame }: Final
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
-              className="mt-1 text-[20px] font-bold tabular-nums text-[#F5C542]"
+              className="mt-1 text-[20px] font-bold tabular-nums text-[#FBBF24]"
             >
               {winner.score} נקודות
             </motion.p>
@@ -122,12 +122,12 @@ export function FinalResults({ game, memberPhotos, groupName, onNewGame }: Final
                 transition={{ delay: 0.5 + rank * 0.1 }}
                 className={`rounded-xl px-4 py-3 ${
                   rank === 0
-                    ? "border border-[#F5C542]/30 bg-[#F5C542]/10 shadow-[0_0_20px_rgba(245,197,66,0.15)] backdrop-blur-lg"
+                    ? "border border-[#FBBF24]/30 bg-[#FBBF24]/10 shadow-[0_0_20px_rgba(245,197,66,0.15)] backdrop-blur-lg"
                     : "border border-white/10 bg-white/5 backdrop-blur-md"
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="w-7 text-center text-[18px] font-black text-[#8B949E]">
+                  <span className="w-7 text-center text-[18px] font-black text-[#9B96B0]">
                     {rank === 0 ? "👑" : rank === 1 ? "🥈" : rank === 2 ? "🥉" : rank + 1}
                   </span>
                   <div
@@ -138,11 +138,11 @@ export function FinalResults({ game, memberPhotos, groupName, onNewGame }: Final
                   </div>
                   <div className="flex-1">
                     <span className="text-[15px] font-medium">{player.name}</span>
-                    <p className="text-[12px] text-[#8B949E]">
+                    <p className="text-[12px] text-[#9B96B0]">
                       {stats.correct}/{stats.total} נכונות · {stats.accuracy}% דיוק · {stats.avgTime} שנ׳ ממוצע
                     </p>
                   </div>
-                  <span className="text-[18px] font-bold tabular-nums text-[#F5C542]">
+                  <span className="text-[18px] font-bold tabular-nums text-[#FBBF24]">
                     {player.score}
                   </span>
                 </div>
@@ -183,7 +183,7 @@ export function FinalResults({ game, memberPhotos, groupName, onNewGame }: Final
               }
             }}
             disabled={shareStatus === "sharing"}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#00A884]/30 bg-[#00A884]/10 py-3.5 text-[15px] font-bold text-[#00A884] backdrop-blur-md transition-all hover:border-[#00A884]/50 hover:bg-[#00A884]/20 active:scale-[0.98] disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#8B5CF6]/30 bg-[#8B5CF6]/10 py-3.5 text-[15px] font-bold text-[#8B5CF6] backdrop-blur-md transition-all hover:border-[#8B5CF6]/50 hover:bg-[#8B5CF6]/20 active:scale-[0.98] disabled:opacity-50"
           >
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="18" cy="5" r="3" />
@@ -215,7 +215,7 @@ export function FinalResults({ game, memberPhotos, groupName, onNewGame }: Final
           </button>
           <button
             onClick={game.restartGame}
-            className="flex-1 rounded-xl bg-[#F5C542] py-4 text-[15px] font-bold text-[#0A0A0F] shadow-[0_4px_20px_rgba(245,197,66,0.3)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
+            className="flex-1 rounded-xl bg-[#FBBF24] py-4 text-[15px] font-bold text-[#0F0B1E] shadow-[0_4px_20px_rgba(245,197,66,0.3)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
           >
             שחק שוב 🔄
           </button>

@@ -27,10 +27,10 @@ export function ModeSelect({ onSelect }: ModeSelectProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="flex min-h-[calc(100vh-52px)] flex-col items-center justify-center bg-[radial-gradient(ellipse_at_top,#1a1a2e,#0A0A0F)] px-4 py-8"
+      className="flex min-h-[calc(100vh-52px)] flex-col items-center justify-center bg-[radial-gradient(ellipse_at_top,#1a1a2e,#0F0B1E)] px-4 py-8"
     >
       <h2 className="mb-2 text-[24px] font-bold tracking-tight text-white">בחרו מצב משחק</h2>
-      <p className="mb-8 text-[14px] text-[#8B949E]">
+      <p className="mb-8 text-[14px] text-[#9B96B0]">
         מה משחקים הערב?
       </p>
 
@@ -48,12 +48,12 @@ export function ModeSelect({ onSelect }: ModeSelectProps) {
               disabled={!isAvailable}
               className={`relative rounded-2xl border p-5 text-right transition-all ${
                 isAvailable
-                  ? "border-white/10 bg-white/5 backdrop-blur-lg hover:border-[#F5C542]/50 hover:shadow-[0_0_30px_rgba(245,197,66,0.1)] active:scale-[0.98]"
+                  ? "border-white/10 bg-white/5 backdrop-blur-lg hover:border-[#FBBF24]/50 hover:shadow-[0_0_30px_rgba(245,197,66,0.1)] active:scale-[0.98]"
                   : "border-white/5 bg-white/[0.02] opacity-50"
               }`}
             >
               {!isAvailable && (
-                <span className="absolute right-3 top-3 animate-pulse rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-[#8B949E]">
+                <span className="absolute right-3 top-3 animate-pulse rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-[#9B96B0]">
                   בקרוב
                 </span>
               )}
@@ -63,7 +63,7 @@ export function ModeSelect({ onSelect }: ModeSelectProps) {
               <h3 className="text-[16px] font-bold text-white">
                 {MODE_LABELS[mode]}
               </h3>
-              <p className="mt-1 text-[13px] leading-relaxed text-[#8B949E]">
+              <p className="mt-1 text-[13px] leading-relaxed text-[#9B96B0]">
                 {MODE_DESCRIPTIONS[mode]}
               </p>
             </motion.button>

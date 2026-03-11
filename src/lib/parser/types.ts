@@ -97,3 +97,13 @@ export interface ParsedChat {
   groupName: string | null;
   media: Map<string, MediaFile>; // fileName -> MediaFile
 }
+
+/**
+ * Safely convert a value that may be a Map or a plain object (after JSON roundtrip)
+ * into a Map. Use this when accessing ParsedChat fields that were stored in the DB.
+ */
+export function asMap<V>(mapOrObj: Map<string, V> | Record<string, V> | undefined | null): Map<string, V> {
+  if (!mapOrObj) return new Map();
+  if (mapOrObj instanceof Map) return mapOrObj;
+  return new Map(Object.entries(mapOrObj));
+}

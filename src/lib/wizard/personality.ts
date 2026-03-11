@@ -1,4 +1,5 @@
 import type { ChatMember, MemberStats, ParsedChat } from "@/lib/parser/types";
+import { asMap } from "@/lib/parser/types";
 import { isMediaMessage, isSystemMessage } from "@/lib/parser/parse-chat";
 
 export interface Personality {
@@ -299,11 +300,13 @@ export function findMemberVoiceNote(
   chat: ParsedChat,
   memberName: string
 ): { url: string; count: number } | null {
+  const mediaMap = asMap(chat.media);
+
   // Find messages with voice attachments from this member
   const voiceMessages = chat.messages.filter((m) => {
     if (m.author !== memberName) return false;
     if (!m.attachment) return false;
-    const media = chat.media.get(m.attachment.fileName);
+    const media = mediaMap.get(m.attachment.fileName);
     return media?.type === "voice";
   });
 
@@ -312,7 +315,7 @@ export function findMemberVoiceNote(
   // Pick the first voice note that exists in media
   for (const msg of voiceMessages) {
     if (!msg.attachment) continue;
-    const media = chat.media.get(msg.attachment.fileName);
+    const media = mediaMap.get(msg.attachment.fileName);
     if (media) {
       return { url: media.url, count: voiceMessages.length };
     }
@@ -327,7 +330,7 @@ export function findMemberVoiceNote(
  */
 export function generateGroupRoast(chat: ParsedChat): string {
   const members = chat.members;
-  const statsMap = chat.stats.members;
+  const statsMap = asMap(chat.stats.members);
 
   // Most active member percentage
   if (members.length > 0) {

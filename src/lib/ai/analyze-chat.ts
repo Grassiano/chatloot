@@ -1,4 +1,5 @@
 import type { ParsedChat } from "@/lib/parser/types";
+import { asMap } from "@/lib/parser/types";
 import type { WhoSaidItQuestion } from "@/lib/game/types";
 import { AnalyzeResponseSchema } from "./types";
 import { sampleMessagesForAnalysis } from "./sample-messages";
@@ -26,7 +27,7 @@ export async function analyzeChat(
     }
 
     const memberPayload = chat.members.map((m) => {
-      const stats = chat.stats.members.get(m.displayName);
+      const stats = asMap(chat.stats.members).get(m.displayName);
       return {
         displayName: m.displayName,
         messageCount: m.messageCount,

@@ -1,4 +1,5 @@
 import type { ParsedChat, MemberStats } from "@/lib/parser/types";
+import { asMap } from "@/lib/parser/types";
 import type { StatTriviaQuestion } from "../types";
 import { shuffleArray } from "@/lib/utils";
 
@@ -125,6 +126,7 @@ export function generateStatTriviaQuestions(
   const memberNames = chat.members.map((m) => m.displayName);
   if (memberNames.length < 2) return [];
 
+  const memberStats = asMap(chat.stats.members);
   const questions: StatTriviaQuestion[] = [];
 
   // Shuffle categories and try each one
@@ -138,7 +140,7 @@ export function generateStatTriviaQuestions(
     let winnerValue = -1;
 
     for (const member of chat.members) {
-      const stats = chat.stats.members.get(member.displayName);
+      const stats = memberStats.get(member.displayName);
       if (!stats) continue;
 
       const value = category.getValue(stats);

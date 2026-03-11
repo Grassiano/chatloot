@@ -15,7 +15,7 @@ interface ConfettiPiece {
 
 const COLORS = [
   "#F5C542", // gold
-  "#00A884", // teal
+  "#8B5CF6", // teal
   "#FF4757", // red
   "#3B82F6", // blue
   "#EC4899", // pink

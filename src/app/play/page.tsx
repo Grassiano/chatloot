@@ -149,7 +149,7 @@ export default function PlayPage() {
       }
     >
       {/* Header */}
-      <header className="sticky top-0 z-50 flex items-center gap-3 bg-[#075E54] px-4 py-2.5 text-white shadow-md">
+      <header className="sticky top-0 z-50 flex items-center gap-3 bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] px-4 py-2.5 text-white shadow-md">
         <button
           onClick={(e) => {
             const isActiveGame =
@@ -188,7 +188,7 @@ export default function PlayPage() {
           </p>
         </div>
         {isAiEnhanced && inGame && phase !== "final" && (
-          <div className="rounded-full bg-[#E2A829]/20 px-2 py-0.5 text-[10px] font-bold text-[#E2A829]">
+          <div className="rounded-full bg-[#FBBF24]/20 px-2 py-0.5 text-[10px] font-bold text-[#FBBF24]">
             AI
           </div>
         )}
@@ -230,7 +230,7 @@ export default function PlayPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex min-h-[calc(100vh-52px)] flex-col items-center justify-center bg-[#0D1117] px-4"
+              className="flex min-h-[calc(100vh-52px)] flex-col items-center justify-center bg-[#0F0B1E] px-4"
             >
               <motion.div
                 animate={{ rotate: 360 }}
@@ -252,14 +252,14 @@ export default function PlayPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="mb-8 text-[14px] text-[#8B949E]"
+                  className="mb-8 text-[14px] text-[#9B96B0]"
                 >
                   {LOADING_MESSAGES[loadingMsg]}
                 </motion.p>
               </AnimatePresence>
               <button
                 onClick={handleSkipAi}
-                className="rounded-lg bg-[#21262D] px-4 py-2 text-[13px] text-[#8B949E] transition-colors hover:bg-[#30363D] hover:text-white"
+                className="rounded-lg bg-[#252040] px-4 py-2 text-[13px] text-[#9B96B0] transition-colors hover:bg-[#352F55] hover:text-white"
               >
                 דלגו ושחקו עם בחירה רנדומלית
               </button>

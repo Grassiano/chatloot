@@ -46,16 +46,16 @@ export function HighlightsReview({
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-[18px] font-bold text-[#111B21]">
+            <h2 className="text-[18px] font-bold text-[#1E1B3A]">
               מצאתי {highlights.length} רגעים שווים
             </h2>
-            <p className="text-[13px] text-[#667781]">
+            <p className="text-[13px] text-[#6B7194]">
               {approvedCount} מאושרים
             </p>
           </div>
           <button
             onClick={onApproveAll}
-            className="rounded-full bg-[#F0F2F5] px-3 py-1.5 text-[12px] font-medium text-[#111B21] transition-colors hover:bg-[#E4E6EB]"
+            className="rounded-full bg-[#F0EEFF] px-3 py-1.5 text-[12px] font-medium text-[#1E1B3A] transition-colors hover:bg-[#E0DBFF]"
           >
             אשרו הכל
           </button>
@@ -84,7 +84,7 @@ export function HighlightsReview({
           <button
             onClick={onComplete}
             disabled={approvedCount === 0}
-            className="w-full rounded-full bg-[#00A884] py-3.5 text-[16px] font-bold text-white transition-colors hover:bg-[#00A884]/90 disabled:opacity-40"
+            className="w-full rounded-full bg-[#8B5CF6] py-3.5 text-[16px] font-bold text-white transition-colors hover:bg-[#8B5CF6]/90 disabled:opacity-40"
           >
             בואו נשחק! ({approvedCount} שאלות)
           </button>
@@ -121,20 +121,20 @@ function HighlightCardComponent({
     >
       {/* Score + reason */}
       <div className="mb-2 flex items-center gap-2">
-        <span className="rounded-md bg-gradient-to-r from-[#FFE9B2] to-[#F5C542] px-2 py-0.5 text-[12px] font-bold text-[#54656F]">
+        <span className="rounded-md bg-gradient-to-r from-[#EDE9FE] to-[#C4B5FD] px-2 py-0.5 text-[12px] font-bold text-[#6B7194]">
           {highlight.aiScore}
         </span>
-        <span className="text-[12px] text-[#667781]" dir="auto">
+        <span className="text-[12px] text-[#6B7194]" dir="auto">
           {highlight.aiReason}
         </span>
       </div>
 
       {/* Message */}
-      <div className="mb-2 rounded-lg rounded-tl-none bg-[#D9FDD3] px-3 py-2 shadow-sm">
-        <p className="text-[14px] leading-relaxed text-[#111B21]" dir="auto">
+      <div className="mb-2 rounded-lg rounded-tl-none bg-[#EDE9FE] px-3 py-2 shadow-sm">
+        <p className="text-[14px] leading-relaxed text-[#1E1B3A]" dir="auto">
           &ldquo;{highlight.question.messageText}&rdquo;
         </p>
-        <p className="mt-1 text-left text-[11px] text-[#667781]">
+        <p className="mt-1 text-left text-[11px] text-[#6B7194]">
           — {highlight.question.correctAuthor}
         </p>
       </div>
@@ -155,21 +155,21 @@ function HighlightCardComponent({
           autoFocus
           placeholder="הערת מנחה..."
           dir="auto"
-          className="mb-2 w-full rounded-lg border border-[#00A884] bg-transparent px-3 py-1.5 text-[13px] text-[#111B21] outline-none"
+          className="mb-2 w-full rounded-lg border border-[#8B5CF6] bg-transparent px-3 py-1.5 text-[13px] text-[#1E1B3A] outline-none"
         />
       ) : highlight.gmNoteEdited ? (
         <button
           onClick={() => setEditingNote(true)}
           className="mb-2 w-full text-right"
         >
-          <p className="text-[13px] italic text-[#667781]" dir="auto">
+          <p className="text-[13px] italic text-[#6B7194]" dir="auto">
             {highlight.gmNoteEdited}
           </p>
         </button>
       ) : (
         <button
           onClick={() => setEditingNote(true)}
-          className="mb-2 text-[12px] text-[#00A884]"
+          className="mb-2 text-[12px] text-[#8B5CF6]"
         >
           + הוסיפו הערת מנחה
         </button>
@@ -189,8 +189,8 @@ function HighlightCardComponent({
               }
               className={`min-h-[44px] min-w-[44px] rounded-full px-3 py-2.5 text-[13px] transition-colors ${
                 highlight.category === cat.value
-                  ? "bg-[#00A884] text-white ring-2 ring-[#00A884]/30"
-                  : "bg-[#F0F2F5] text-[#667781] hover:bg-[#E4E6EB]"
+                  ? "bg-[#8B5CF6] text-white ring-2 ring-[#8B5CF6]/30"
+                  : "bg-[#F0EEFF] text-[#6B7194] hover:bg-[#E0DBFF]"
               }`}
             >
               {cat.emoji}
@@ -205,8 +205,8 @@ function HighlightCardComponent({
           }}
           className={`rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
             highlight.approved
-              ? "bg-[#00A884]/10 text-[#00A884]"
-              : "bg-[#F0F2F5] text-[#667781]"
+              ? "bg-[#8B5CF6]/10 text-[#8B5CF6]"
+              : "bg-[#F0EEFF] text-[#6B7194]"
           }`}
         >
           {highlight.approved ? "✓ מאושר" : "✕ הוסר"}

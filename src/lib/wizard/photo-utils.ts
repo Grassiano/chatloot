@@ -17,6 +17,8 @@ export interface SmartPhoto {
 export function buildSmartPhotoList(chat: ParsedChat): SmartPhoto[] {
   const { messages, media } = chat;
 
+  if (!media) return [];
+
   // Build fileName → sender map from parsed messages
   const senderMap = new Map<string, string>();
   for (const msg of messages) {
@@ -26,7 +28,13 @@ export function buildSmartPhotoList(chat: ParsedChat): SmartPhoto[] {
 
   const results: SmartPhoto[] = [];
 
-  for (const [fileName, file] of media) {
+  // Handle both Map (fresh parse) and plain object (from JSON/DB)
+  const entries: Iterable<[string, MediaFile]> =
+    media instanceof Map
+      ? media
+      : (Object.entries(media) as [string, MediaFile][]);
+
+  for (const [fileName, file] of entries) {
     if (file.type !== "image") continue;
     if (shouldSkipImage(fileName, file)) continue;
 
@@ -111,10 +119,14 @@ export function getPhotoCountsBySender(
   chat: ParsedChat
 ): Map<string, number> {
   const counts = new Map<string, number>();
+  const mediaMap =
+    chat.media instanceof Map
+      ? chat.media
+      : new Map(Object.entries(chat.media ?? {}));
 
   for (const msg of chat.messages) {
     if (!msg.author || !msg.attachment) continue;
-    const media = chat.media.get(msg.attachment.fileName);
+    const media = mediaMap.get(msg.attachment.fileName) as MediaFile | undefined;
     if (media?.type !== "image") continue;
     counts.set(msg.author, (counts.get(msg.author) ?? 0) + 1);
   }

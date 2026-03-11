@@ -24,7 +24,12 @@ export function buildAnalyzePrompt(data: AnalyzeRequest): string {
     .map((m) => `[${m.id}] ${m.author}: ${m.message}`)
     .join("\n");
 
-  return `You are analyzing a WhatsApp group chat${data.groupName ? ` called "${data.groupName}"` : ""} for a party game called "Who Said It?" (מי אמר?).
+  // Sanitize group name to prevent prompt injection
+  const safeName = data.groupName
+    ? data.groupName.replace(/["\n\r\\]/g, "").slice(0, 100)
+    : null;
+
+  return `You are analyzing a WhatsApp group chat${safeName ? ` called "${safeName}"` : ""} for a party game called "Who Said It?" (מי אמר?).
 
 Players see a message and guess which group member wrote it. Your job: find the BEST messages for this game and pick smart distractors.
 
