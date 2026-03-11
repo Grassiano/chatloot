@@ -157,10 +157,17 @@ export function PhotoMatcher({
 
   // No photos at all — exit via effect (not during render)
   const hasNoPhotos = smartPhotos.length === 0;
+  const scanFailed = scanStatus === "failed" || (scanStatus === "done" && scannedPhotos.length === 0);
+
   useEffect(() => {
     if (hasNoPhotos) onDone();
   }, [hasNoPhotos, onDone]);
 
+  useEffect(() => {
+    if (scanFailed) onDone();
+  }, [scanFailed, onDone]);
+
+  // All hooks above — early returns below
   if (hasNoPhotos) return null;
 
   // --- Scanning state: show loading overlay ---
@@ -206,12 +213,6 @@ export function PhotoMatcher({
       </motion.div>
     );
   }
-
-  // Scanning failed or no faces found — exit via effect (not during render)
-  const scanFailed = scanStatus === "failed" || (scanStatus === "done" && scannedPhotos.length === 0);
-  useEffect(() => {
-    if (scanFailed) onDone();
-  }, [scanFailed, onDone]);
 
   if (scanFailed) return null;
 
