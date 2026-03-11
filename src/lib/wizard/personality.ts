@@ -167,8 +167,9 @@ const PERSONALITY_TEMPLATES: PersonalityTemplate[] = [
  */
 export function assignPersonalities(
   members: ChatMember[],
-  statsMap: Map<string, MemberStats>
+  rawStatsMap: Map<string, MemberStats> | Record<string, MemberStats>
 ): Map<string, Personality> {
+  const statsMap = asMap(rawStatsMap);
   const result = new Map<string, Personality>();
   const allStats = members
     .map((m) => statsMap.get(m.displayName))
