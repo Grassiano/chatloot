@@ -103,7 +103,9 @@ export function buildBroadcast(
     timerSeconds: state.settings.timerSeconds,
     roundStartedAt: state.roundStartTime,
     question: q ? serializeQuestion(q) : null,
-    correctAnswer: isReveal || isFinal ? (q?.correctAnswer ?? null) : null,
+    // Always include correctAnswer — backend needs it for answer scoring.
+    // The backend strips it from the WebSocket broadcast for non-reveal phases.
+    correctAnswer: q?.correctAnswer ?? null,
     players: state.players.map((p) => ({
       id: p.id,
       name: p.name,

@@ -425,11 +425,12 @@ describe("Game Flow — Full Lifecycle", () => {
       expect(bc.phase).toBe("waiting");
       expect(bc.players).toHaveLength(2);
       expect(bc.question).toBeNull();
-      expect(bc.correctAnswer).toBeNull();
+      expect(bc.correctAnswer).toBeNull(); // no question = no answer
       expect(bc.playerResults).toBeNull();
       expect(bc.currentRound).toBe(0);
 
-      // QUESTION (round 1) → broadcast has question but no correct answer
+      // QUESTION (round 1) → broadcast always includes correctAnswer for backend scoring
+      // (backend strips it from WS broadcast to players)
       engine.startGame();
       bc = buildBroadcast(engine.state, []);
       expect(bc.phase).toBe("question");
@@ -437,7 +438,7 @@ describe("Game Flow — Full Lifecycle", () => {
       expect(bc.totalRounds).toBe(3);
       expect(bc.question).not.toBeNull();
       expect(bc.question!.options).toHaveLength(4);
-      expect(bc.correctAnswer).toBeNull(); // hidden during question
+      expect(bc.correctAnswer).not.toBeNull(); // always sent for backend scoring
       expect(bc.playerResults).toBeNull();
 
       // ANSWERING → broadcast has roundStartedAt
@@ -451,7 +452,7 @@ describe("Game Flow — Full Lifecycle", () => {
       engine.submitAnswer("p1", engine.state.currentQuestion!.correctAnswer);
       bc = buildBroadcast(engine.state, ["p1"]);
       expect(bc.answeredPlayerIds).toEqual(["p1"]);
-      expect(bc.correctAnswer).toBeNull(); // still hidden
+      expect(bc.correctAnswer).not.toBeNull(); // always present for backend
 
       // Player 2 answers
       engine.submitAnswer("p2", "wrong");
@@ -471,11 +472,11 @@ describe("Game Flow — Full Lifecycle", () => {
       expect(bc.playerResults!["p2"].isCorrect).toBe(false);
       expect(bc.playerResults!["p2"].scoreAwarded).toBe(0);
 
-      // SCORES → correct answer still visible, playerResults = null (only on reveal)
+      // SCORES → correctAnswer still present (backend needs it), playerResults = null (only on reveal)
       engine.showScores();
       bc = buildBroadcast(engine.state, ["p1", "p2"]);
       expect(bc.phase).toBe("scores");
-      expect(bc.correctAnswer).toBeNull(); // not reveal or final
+      expect(bc.correctAnswer).not.toBeNull(); // always present
       expect(bc.playerResults).toBeNull();
 
       // Verify player scores in broadcast
@@ -705,7 +706,7 @@ describe("Game Flow — Full Lifecycle", () => {
   // -----------------------------------------------------------------------
 
   describe("Player View Consistency", () => {
-    it("broadcast never leaks correct answer during question/answering phase", () => {
+    it("broadcast always includes correctAnswer for backend scoring (backend strips for WS)", () => {
       const questions = createMockQuestions(3, MEMBER_NAMES);
       engine.state.settings.totalRounds = 3;
       engine.initGame(chat, questions);
@@ -714,24 +715,22 @@ describe("Game Flow — Full Lifecycle", () => {
       engine.startGame();
 
       for (let round = 1; round <= 3; round++) {
-        // Question phase — no answer leak
+        // correctAnswer is always present when there's a question
         let bc = buildBroadcast(engine.state, []);
-        expect(bc.correctAnswer).toBeNull();
+        expect(bc.correctAnswer).not.toBeNull();
         expect(bc.playerResults).toBeNull();
 
-        // Answering phase — still no leak
         engine.showQuestion();
         bc = buildBroadcast(engine.state, []);
-        expect(bc.correctAnswer).toBeNull();
+        expect(bc.correctAnswer).not.toBeNull();
         expect(bc.playerResults).toBeNull();
 
         engine.submitAnswer("p1", engine.state.currentQuestion!.correctAnswer);
 
-        // After answer, still no leak
         bc = buildBroadcast(engine.state, ["p1"]);
-        expect(bc.correctAnswer).toBeNull();
+        expect(bc.correctAnswer).not.toBeNull();
 
-        // Reveal — NOW answer is visible
+        // Reveal — playerResults now available
         engine.revealAnswer();
         bc = buildBroadcast(engine.state, ["p1"]);
         expect(bc.correctAnswer).not.toBeNull();
