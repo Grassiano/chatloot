@@ -4,6 +4,8 @@ import { useCallback, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useRoomContext } from "@/components/room/room-provider";
 import { GmSetup } from "@/components/wizard/gm-setup";
+import { roomApi } from "@/lib/room/api";
+import { getSessionId } from "@/lib/session";
 import type { ParsedChat } from "@/lib/parser/types";
 import type { AnalysisResult } from "@/lib/ai/analyze-chat";
 import type { WhoSaidItQuestion } from "@/lib/game/types";
@@ -16,16 +18,48 @@ export default function RoomSetupPage() {
   const [chat, setChat] = useState<ParsedChat | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
 
-  // Load chat data from room
+  // Check if wizard was already completed (questions exist) — skip to lobby
+  const wizardData = room?.wizardData as Record<string, unknown> | null;
+  const isWizardComplete =
+    Array.isArray(wizardData?.questions) &&
+    (wizardData.questions as unknown[]).length > 0;
+
+  useEffect(() => {
+    if (!isLoading && room && isWizardComplete) {
+      router.replace(`/room/${room.code}/lobby`);
+    }
+  }, [isLoading, room, isWizardComplete, router]);
+
+  // Load chat data from wizard_data (stored there during room creation)
   useEffect(() => {
     if (!room) return;
-    if (room.chatData) {
+    const wd = room.wizardData as Record<string, unknown> | null;
+    if (wd?.chatData) {
+      setChat(wd.chatData as ParsedChat);
+    } else if (room.chatData) {
       setChat(room.chatData as ParsedChat);
     }
     if (room.analysisData) {
       setAnalysis(room.analysisData as AnalysisResult);
     }
   }, [room]);
+
+  // Poll for AI analysis results (fires in background from create page)
+  useEffect(() => {
+    if (analysis || !room || !isGm) return;
+    const sessionId = getSessionId();
+    const id = setInterval(async () => {
+      try {
+        const fresh = await roomApi.getRoom(room.code, sessionId);
+        if (fresh?.analysisData) {
+          setAnalysis(fresh.analysisData as AnalysisResult);
+        }
+      } catch {
+        // Polling failure is non-critical
+      }
+    }, 4000);
+    return () => clearInterval(id);
+  }, [analysis, room, isGm]);
 
   // Redirect non-GM users
   useEffect(() => {
@@ -38,13 +72,14 @@ export default function RoomSetupPage() {
     async (questions: WhoSaidItQuestion[], memberPhotos: Map<string, string>) => {
       if (!room) return;
 
-      // Convert Map to serializable object
       const photosObj: Record<string, string> = {};
       memberPhotos.forEach((url, name) => {
         photosObj[name] = url;
       });
 
+      const existingWd = (room.wizardData as Record<string, unknown>) ?? {};
       await saveWizardData({
+        ...existingWd,
         questions,
         memberPhotos: photosObj,
       });
@@ -55,7 +90,7 @@ export default function RoomSetupPage() {
     [room, saveWizardData, updatePhase, router]
   );
 
-  if (isLoading || !room) {
+  if (isLoading || !room || isWizardComplete) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F0F2F5]">
         <p className="text-loot-ink-secondary">{t("common.loading")}</p>

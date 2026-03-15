@@ -1,15 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import type { ParsedChat } from "@/lib/parser/types";
 import type { AnalysisResult } from "@/lib/ai/analyze-chat";
 import type { WhoSaidItQuestion } from "@/lib/game/types";
 import { useWizard } from "@/hooks/use-wizard";
-import { buildSmartPhotoList } from "@/lib/wizard/photo-utils";
 import { GroupReveal } from "./group-reveal";
 import { MemberCards } from "./member-cards";
-import { PhotoMatcher } from "./photo-matcher";
 import { HighlightsReview } from "./highlights-review";
 
 interface GmSetupProps {
@@ -24,58 +22,47 @@ interface GmSetupProps {
 export function GmSetup({ chat, analysis, onComplete }: GmSetupProps) {
   const wizard = useWizard();
 
-  // Initialize wizard when mounted
+  // Always start immediately without AI — inject analysis later when it arrives
   useEffect(() => {
-    if (analysis) {
-      wizard.init(chat, analysis);
-    } else {
-      wizard.initFallback(chat);
-    }
+    wizard.initFallback(chat);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Build smart photo list once (memoized) — pre-filter before face scan
-  const smartPhotos = useMemo(() => buildSmartPhotoList(chat), [chat]);
-  const hasPhotos = smartPhotos.length > 0;
+  // Inject AI results when they arrive (from background polling)
+  useEffect(() => {
+    if (analysis && !wizard.state.isAiEnhanced) {
+      wizard.injectAnalysis(analysis);
+    }
+  }, [analysis, wizard]);
 
   const handleRevealComplete = useCallback(() => {
     wizard.goToStep(2);
   }, [wizard]);
 
-  // After member review → photo matcher (if photos) or highlights/finish
-  const handleMembersComplete = useCallback(() => {
-    if (hasPhotos) {
-      wizard.goToStep(3);
-    } else if (wizard.state.highlights.length > 0) {
-      wizard.goToStep(4);
-    } else {
-      const questions = wizard.buildFinalQuestions();
-      const photos = wizard.getMemberPhotoMap();
-      wizard.revokeWizardPhotos();
-      onComplete(questions, photos);
-    }
-  }, [wizard, onComplete, hasPhotos]);
-
-  // After photo matcher → highlights or finish
-  const handlePhotosDone = useCallback(() => {
-    if (wizard.state.highlights.length > 0) {
-      wizard.goToStep(4);
-    } else {
-      const questions = wizard.buildFinalQuestions();
-      const photos = wizard.getMemberPhotoMap();
-      wizard.revokeWizardPhotos();
-      onComplete(questions, photos);
-    }
-  }, [wizard, onComplete]);
-
-  const handleHighlightsComplete = useCallback(() => {
+  const finishWizard = useCallback(() => {
     const questions = wizard.buildFinalQuestions();
     const photos = wizard.getMemberPhotoMap();
     wizard.revokeWizardPhotos();
     onComplete(questions, photos);
   }, [wizard, onComplete]);
 
-  const activeProfiles = wizard.state.profiles.filter((p) => !p.mergedInto);
+  // Try to advance to highlights, or finish if no AI
+  const tryAdvanceToHighlightsOrFinish = useCallback(() => {
+    if (wizard.state.highlights.length > 0) {
+      wizard.goToStep(4);
+    } else {
+      finishWizard();
+    }
+  }, [wizard, finishWizard]);
+
+  // After member review → highlights or finish
+  const handleMembersComplete = useCallback(() => {
+    tryAdvanceToHighlightsOrFinish();
+  }, [tryAdvanceToHighlightsOrFinish]);
+
+  const handleHighlightsComplete = useCallback(() => {
+    finishWizard();
+  }, [finishWizard]);
 
   return (
     <div className="min-h-screen bg-[#F0F2F5]">
@@ -97,16 +84,6 @@ export function GmSetup({ chat, analysis, onComplete }: GmSetupProps) {
             onSetPhoto={wizard.setMemberPhoto}
             onTagPhoto={wizard.tagPhoto}
             onComplete={handleMembersComplete}
-          />
-        )}
-
-        {wizard.state.currentStep === 3 && (
-          <PhotoMatcher
-            key="photos"
-            smartPhotos={smartPhotos}
-            profiles={activeProfiles}
-            onAssign={wizard.tagPhoto}
-            onDone={handlePhotosDone}
           />
         )}
 

@@ -28,10 +28,10 @@ export interface RoomPlayer {
   joinedAt: string;
 }
 
-/** API contract — backend partner implements these endpoints */
+/** API contract — matches the FastAPI backend endpoints */
 export interface RoomAPI {
-  createRoom(gmSessionId: string, groupName?: string): Promise<Room>;
-  getRoom(code: string): Promise<Room | null>;
+  createRoom(gmSessionId: string, groupName?: string, file?: File | Blob): Promise<Room>;
+  getRoom(code: string, sessionId?: string): Promise<Room | null>;
   updateRoom(code: string, data: Partial<Room>): Promise<Room>;
   joinRoom(
     code: string,

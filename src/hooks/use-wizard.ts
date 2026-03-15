@@ -43,6 +43,7 @@ interface UseWizardReturn {
   approveAll: () => void;
 
   /** AI progressive enhancement */
+  injectAnalysis: (analysis: AnalysisResult) => void;
   updateAiSummaries: (summaries: Record<string, string>) => void;
 
   /** Final output */
@@ -293,6 +294,22 @@ export function useWizard(): UseWizardReturn {
 
   // --- AI progressive enhancement ---
 
+  const injectAnalysis = useCallback(
+    (analysis: AnalysisResult) => {
+      const highlights = buildHighlights(analysis);
+      setState((prev) => ({
+        ...prev,
+        isAiEnhanced: analysis.isAiEnhanced,
+        highlights,
+        profiles: prev.profiles.map((p) => ({
+          ...p,
+          aiSummary: analysis.memberSummaries[p.displayName] ?? p.aiSummary,
+        })),
+      }));
+    },
+    [buildHighlights]
+  );
+
   const updateAiSummaries = useCallback(
     (summaries: Record<string, string>) => {
       setState((prev) => ({
@@ -380,6 +397,7 @@ export function useWizard(): UseWizardReturn {
     editGmNote,
     setCategory,
     approveAll,
+    injectAnalysis,
     updateAiSummaries,
     buildFinalQuestions,
     getMemberPhotoMap,

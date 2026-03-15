@@ -82,6 +82,15 @@ async function getHuman() {
 }
 
 /**
+ * Pre-load the face detection model in the background.
+ * Call early (e.g. during GroupReveal) so the model is ready
+ * by the time PhotoMatcher mounts.
+ */
+export function preloadFaceModel(): void {
+  getHuman().catch(() => {});
+}
+
+/**
  * Load an image URL into an HTMLImageElement for processing.
  */
 function loadImage(url: string): Promise<HTMLImageElement> {

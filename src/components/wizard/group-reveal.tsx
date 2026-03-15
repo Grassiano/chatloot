@@ -219,7 +219,7 @@ export function GroupReveal({ chat, onComplete }: GroupRevealProps) {
           onClick={onComplete}
           className="absolute bottom-8 rounded-full bg-[#8B5CF6] px-8 py-3 text-[15px] font-bold text-white shadow-lg transition-transform active:scale-95"
         >
-          יאללה, קדימה →
+          יאללה, קדימה ←
         </motion.button>
       ) : (
         <motion.p

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { RoleCard } from "@/components/home/role-card";
 import { ChatDemo } from "@/components/home/chat-demo";
+import { roomApi } from "@/lib/room/api";
+import { getLastRoom, clearLastRoom, getSessionId } from "@/lib/session";
 import { t } from "@/lib/i18n/he";
 import { VerticalCutReveal } from "@/components/ui/vertical-cut-reveal";
 import { SparklesText } from "@/components/ui/sparkles-text";
@@ -14,11 +16,45 @@ export default function HomePage() {
   const router = useRouter();
   const [codeInput, setCodeInput] = useState("");
   const [showDemo, setShowDemo] = useState(false);
+  const [joinError, setJoinError] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [savedRoomCode, setSavedRoomCode] = useState<string | null>(null);
 
-  function handleQuickJoin() {
+  // Check for saved room on mount
+  useEffect(() => {
+    const code = getLastRoom();
+    if (!code) return;
+    const sessionId = getSessionId();
+    roomApi
+      .getRoom(code, sessionId)
+      .then((room) => {
+        if (room && room.phase !== "results") {
+          setSavedRoomCode(code);
+        } else {
+          clearLastRoom();
+        }
+      })
+      .catch(() => {
+        clearLastRoom();
+      });
+  }, []);
+
+  async function handleQuickJoin() {
     const code = codeInput.trim().toUpperCase();
-    if (code.length === 6) {
-      router.push(`/join/${code}`);
+    if (code.length !== 6) return;
+    setJoinError("");
+    setChecking(true);
+    try {
+      const room = await roomApi.getRoom(code);
+      if (room) {
+        router.push(`/join/${code}`);
+      } else {
+        setJoinError(t("room.not_found"));
+      }
+    } catch {
+      setJoinError(t("room.not_found"));
+    } finally {
+      setChecking(false);
     }
   }
 
@@ -42,6 +78,40 @@ export default function HomePage() {
 
       <main className="flex flex-1 flex-col items-center px-4 py-8">
         <div className="w-full max-w-md space-y-6">
+          {/* Continue game banner */}
+          <AnimatePresence>
+            {savedRoomCode && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="flex items-center gap-3 rounded-2xl border border-[#8B5CF6]/20 bg-[#F0EEFF] p-4"
+              >
+                <span className="text-2xl">🎮</span>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-loot-ink">
+                    {t("home.continue_game")}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    clearLastRoom();
+                    setSavedRoomCode(null);
+                  }}
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-loot-ink-secondary transition-colors hover:bg-white/60"
+                >
+                  {t("home.continue_game.reset")}
+                </button>
+                <button
+                  onClick={() => router.push(`/room/${savedRoomCode}/lobby`)}
+                  className="rounded-lg bg-[#8B5CF6] px-4 py-1.5 text-xs font-bold text-white transition-all hover:bg-[#7C3AED]"
+                >
+                  {t("home.continue_game.button")}
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Role selection cards */}
           <div className="grid grid-cols-2 gap-3">
             <RoleCard
@@ -80,9 +150,10 @@ export default function HomePage() {
             <div className="flex gap-2">
               <input
                 value={codeInput}
-                onChange={(e) =>
-                  setCodeInput(e.target.value.toUpperCase().slice(0, 6))
-                }
+                onChange={(e) => {
+                  setCodeInput(e.target.value.toUpperCase().slice(0, 6));
+                  if (joinError) setJoinError("");
+                }}
                 onKeyDown={(e) => e.key === "Enter" && handleQuickJoin()}
                 placeholder={t("home.quick_join")}
                 className="flex-1 rounded-xl border border-white/50 bg-white/80 px-4 py-3 text-center text-lg font-bold tracking-[0.3em] text-loot-ink placeholder:text-sm placeholder:font-normal placeholder:tracking-normal placeholder:text-loot-ink-secondary focus:border-[#8B5CF6] focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/20"
@@ -91,12 +162,17 @@ export default function HomePage() {
               />
               <button
                 onClick={handleQuickJoin}
-                disabled={codeInput.length !== 6}
+                disabled={codeInput.length !== 6 || checking}
                 className="rounded-xl bg-[#8B5CF6] px-5 min-h-[44px] text-sm font-bold text-white shadow-sm transition-all hover:scale-105 active:scale-95 disabled:opacity-40 disabled:hover:scale-100"
               >
-                {t("home.quick_join.button")}
+                {checking ? "..." : t("home.quick_join.button")}
               </button>
             </div>
+            {joinError && (
+              <p className="text-center text-sm font-medium text-red-500">
+                {joinError}
+              </p>
+            )}
           </motion.div>
 
           {/* Solo mode link */}

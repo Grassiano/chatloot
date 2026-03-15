@@ -8,45 +8,25 @@ import { extractUpload, revokeMediaUrls } from "@/lib/parser/extract-files";
 import { parseWhatsAppChat } from "@/lib/parser/parse-chat";
 import { analyzeChat } from "@/lib/ai/analyze-chat";
 import { roomApi } from "@/lib/room/api";
-import { getSessionId } from "@/lib/session";
+import { getSessionId, saveLastRoom } from "@/lib/session";
 import type { ParsedChat, MediaFile, ExtractionProgress } from "@/lib/parser/types";
-import type { AnalysisResult } from "@/lib/ai/analyze-chat";
 import { t } from "@/lib/i18n/he";
-import { TextShimmer } from "@/components/ui/text-shimmer";
 
-type CreatePhase = "upload" | "analyzing" | "creating" | "error";
-
-const LOADING_MESSAGES = [
-  "קורא את כל ההודעות...",
-  "מחפש את הרגעים המביכים...",
-  "לומד מי כותב מה...",
-  "בוחר את השאלות הכי טובות...",
-  "כותב פרופיל לכל חבר...",
-];
+type CreatePhase = "upload" | "creating" | "error";
 
 export default function RoomCreatePage() {
   const router = useRouter();
   const [phase, setPhase] = useState<CreatePhase>("upload");
   const [extractionProgress, setExtractionProgress] =
     useState<ExtractionProgress | null>(null);
-  const [loadingMsg, setLoadingMsg] = useState(0);
   const [error, setError] = useState("");
   const mediaRef = useRef<Map<string, MediaFile> | null>(null);
-  const roomCodeRef = useRef<string | null>(null);
 
   useEffect(() => {
     return () => {
       if (mediaRef.current) revokeMediaUrls(mediaRef.current);
     };
   }, []);
-
-  useEffect(() => {
-    if (phase !== "analyzing") return;
-    const timer = setInterval(() => {
-      setLoadingMsg((i) => (i + 1) % LOADING_MESSAGES.length);
-    }, 3000);
-    return () => clearInterval(timer);
-  }, [phase]);
 
   const handleUpload = useCallback(
     async (input: File | FileList) => {
@@ -72,34 +52,42 @@ export default function RoomCreatePage() {
           throw new Error("no_eligible_messages");
         }
 
-        // Create room
+        // Get the original file to send to the backend
+        const uploadFile = input instanceof File ? input : input[0];
+
+        // Create room via backend (sends file for server-side parsing)
         setPhase("creating");
         const sessionId = getSessionId();
-        const room = await roomApi.createRoom(sessionId, parsed.groupName ?? undefined);
-        roomCodeRef.current = room.code;
+        const room = await roomApi.createRoom(
+          sessionId,
+          parsed.groupName ?? undefined,
+          uploadFile,
+        );
+        // Save parsed chat to wizard_data so the setup page can access it
+        const serializableChat = {
+          ...parsed,
+          media: Object.fromEntries(
+            Array.from(parsed.media.entries()).map(([k, v]) => [
+              k,
+              { fileName: v.fileName, type: v.type },
+            ]),
+          ),
+          stats: {
+            ...parsed.stats,
+            members: Object.fromEntries(parsed.stats.members),
+          },
+        };
+        await roomApi.saveWizardData(room.code, { chatData: serializableChat });
+        saveLastRoom(room.code);
 
-        // Save chat data to room
-        await roomApi.updateRoom(room.code, {
-          chatData: parsed,
-          groupName: parsed.groupName,
-        });
+        // Fire AI analysis in background — don't block navigation
+        analyzeChat(parsed).then(async (result) => {
+          if (result?.isAiEnhanced) {
+            await roomApi.updateRoom(room.code, { analysisData: result });
+          }
+        }).catch(() => {});
 
-        // Start AI analysis in background
-        setPhase("analyzing");
-        let analysis: AnalysisResult | null = null;
-        try {
-          analysis = await analyzeChat(parsed);
-        } catch {
-          // AI failed — continue without
-        }
-
-        if (analysis) {
-          await roomApi.updateRoom(room.code, {
-            analysisData: analysis,
-          });
-        }
-
-        // Navigate to setup wizard
+        // Navigate immediately — wizard starts without AI
         router.push(`/room/${room.code}/setup`);
       } catch (err) {
         const message = err instanceof Error ? err.message : "";
@@ -115,12 +103,6 @@ export default function RoomCreatePage() {
     },
     [router]
   );
-
-  function handleSkipAi() {
-    if (roomCodeRef.current) {
-      router.push(`/room/${roomCodeRef.current}/setup`);
-    }
-  }
 
   function handleRetry() {
     setError("");
@@ -146,7 +128,6 @@ export default function RoomCreatePage() {
           <p className="text-[11px] opacity-75">
             {phase === "upload" && "יצירת משחק חדש"}
             {phase === "creating" && t("room.creating")}
-            {phase === "analyzing" && "מנתח את הצ׳אט..."}
             {phase === "error" && "שגיאה"}
           </p>
         </div>
@@ -162,9 +143,9 @@ export default function RoomCreatePage() {
             />
           )}
 
-          {(phase === "analyzing" || phase === "creating") && (
+          {phase === "creating" && (
             <motion.div
-              key="analyzing"
+              key="creating"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -179,36 +160,12 @@ export default function RoomCreatePage() {
                 }}
                 className="mb-6 text-[48px]"
               >
-                {phase === "creating" ? "🏠" : "🔍"}
+                💬
               </motion.div>
               <p className="mb-2 text-[18px] font-bold text-white">
-                {phase === "creating"
-                  ? t("room.creating")
-                  : "הבינה המלאכותית קוראת את הצ׳אט..."}
+                {t("room.creating")}
               </p>
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={loadingMsg}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="mb-8"
-                >
-                  <TextShimmer className="text-[14px] [--base-color:#9B96B0] [--base-gradient-color:#EC4899]" duration={2} rtl>
-                    {phase === "analyzing"
-                      ? LOADING_MESSAGES[loadingMsg]
-                      : "מכין את החדר..."}
-                  </TextShimmer>
-                </motion.div>
-              </AnimatePresence>
-              {phase === "analyzing" && (
-                <button
-                  onClick={handleSkipAi}
-                  className="rounded-lg bg-[#252040] px-4 min-h-[44px] flex items-center text-[13px] text-[#9B96B0] transition-colors hover:bg-[#352F55] hover:text-white"
-                >
-                  דלגו ושחקו עם בחירה רנדומלית
-                </button>
-              )}
+              <p className="text-[14px] text-[#9B96B0]">מנתח את הצ׳אט...</p>
             </motion.div>
           )}
         </AnimatePresence>

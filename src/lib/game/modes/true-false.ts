@@ -1,4 +1,4 @@
-import type { ParsedChat } from "@/lib/parser/types";
+import { asMap, type ParsedChat } from "@/lib/parser/types";
 import type { TrueFalseQuestion } from "../types";
 import { shuffleArray } from "@/lib/utils";
 
@@ -22,7 +22,7 @@ const TEMPLATES: TFTemplate[] = [
   // Message count threshold
   {
     generate: (chat) => {
-      const members = [...chat.stats.members.entries()];
+      const members = [...asMap(chat.stats.members).entries()];
       if (members.length === 0) return null;
 
       const [name, stats] = members[Math.floor(Math.random() * members.length)];
@@ -42,7 +42,7 @@ const TEMPLATES: TFTemplate[] = [
   // Most active day
   {
     generate: (chat) => {
-      const members = [...chat.stats.members.entries()];
+      const members = [...asMap(chat.stats.members).entries()];
       if (members.length === 0) return null;
 
       const [name, stats] = members[Math.floor(Math.random() * members.length)];
@@ -72,7 +72,7 @@ const TEMPLATES: TFTemplate[] = [
   // Night owl comparison
   {
     generate: (chat) => {
-      const members = [...chat.stats.members.entries()].filter(
+      const members = [...asMap(chat.stats.members).entries()].filter(
         ([, s]) => s.nightMessages > 3
       );
       if (members.length < 2) return null;
@@ -101,7 +101,7 @@ const TEMPLATES: TFTemplate[] = [
   // Emoji count
   {
     generate: (chat) => {
-      const members = [...chat.stats.members.entries()].filter(
+      const members = [...asMap(chat.stats.members).entries()].filter(
         ([, s]) => s.emojiCount > 10
       );
       if (members.length === 0) return null;
@@ -119,7 +119,7 @@ const TEMPLATES: TFTemplate[] = [
   // Deleted messages threshold
   {
     generate: (chat) => {
-      const members = [...chat.stats.members.entries()].filter(
+      const members = [...asMap(chat.stats.members).entries()].filter(
         ([, s]) => s.deletedCount > 2
       );
       if (members.length === 0) return null;
@@ -138,7 +138,7 @@ const TEMPLATES: TFTemplate[] = [
   // Question count comparison
   {
     generate: (chat) => {
-      const members = [...chat.stats.members.entries()].filter(
+      const members = [...asMap(chat.stats.members).entries()].filter(
         ([, s]) => s.questionCount > 5
       );
       if (members.length < 2) return null;
@@ -164,7 +164,7 @@ const TEMPLATES: TFTemplate[] = [
   // Ghost days threshold
   {
     generate: (chat) => {
-      const members = [...chat.stats.members.entries()].filter(
+      const members = [...asMap(chat.stats.members).entries()].filter(
         ([, s]) => s.longestGhostDays > 3
       );
       if (members.length === 0) return null;
@@ -183,7 +183,7 @@ const TEMPLATES: TFTemplate[] = [
   // Forwarded comparison
   {
     generate: (chat) => {
-      const members = [...chat.stats.members.entries()].filter(
+      const members = [...asMap(chat.stats.members).entries()].filter(
         ([, s]) => s.forwardedCount > 3
       );
       if (members.length < 2) return null;
@@ -209,7 +209,7 @@ const TEMPLATES: TFTemplate[] = [
   // Words per message
   {
     generate: (chat) => {
-      const members = [...chat.stats.members.entries()].filter(
+      const members = [...asMap(chat.stats.members).entries()].filter(
         ([, s]) => s.averageWordsPerMessage > 3
       );
       if (members.length === 0) return null;

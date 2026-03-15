@@ -112,6 +112,9 @@ export const he = {
   "home.quick_join.button": "הצטרף",
   "home.how_it_works": "איך זה עובד?",
   "home.or": "או",
+  "home.continue_game": "יש לכם משחק פתוח",
+  "home.continue_game.button": "המשך",
+  "home.continue_game.reset": "התחל מחדש",
 
   // Room
   "room.creating": "יוצר חדר...",
@@ -125,10 +128,10 @@ export const he = {
   // Lobby (room)
   "lobby.qr.title": "סרקו להצטרפות",
   "lobby.mode.title": "בחרו מצב משחק",
-  "lobby.mode.party": "מצב מסיבה",
-  "lobby.mode.party.desc": "כולם מסביב למסך אחד",
-  "lobby.mode.remote": "מצב מרחוק",
-  "lobby.mode.remote.desc": "כל שחקן עונה מהטלפון שלו",
+  "lobby.mode.party": "תשובות בטלפון",
+  "lobby.mode.party.desc": "השאלות על המסך, בטלפון רק בוחרים תשובה",
+  "lobby.mode.remote": "הכל בטלפון",
+  "lobby.mode.remote.desc": "השאלות והתשובות מופיעים בטלפון של כל שחקן",
   "lobby.start_disabled": "צריך לפחות 2 שחקנים ומצב משחק",
   "lobby.player_joined": "הצטרף למשחק!",
 

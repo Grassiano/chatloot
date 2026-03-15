@@ -27,8 +27,8 @@ interface UseGameReturn {
   state: GameState;
   /** Initialize the game with parsed chat data. Optionally pass AI-generated questions. */
   initGame: (chat: ParsedChat, settings?: Partial<GameSettings>, aiQuestions?: GameQuestion[]) => void;
-  /** Add a player to the game */
-  addPlayer: (name: string) => Player;
+  /** Add a player to the game. Pass existingId to reuse a backend player ID. */
+  addPlayer: (name: string, existingId?: string) => Player;
   /** Remove a player */
   removePlayer: (playerId: string) => void;
   /** Start the game (move from lobby to first question) */
@@ -102,13 +102,13 @@ export function useGame(): UseGameReturn {
     []
   );
 
-  const addPlayer = useCallback((name: string): Player => {
+  const addPlayer = useCallback((name: string, existingId?: string): Player => {
     // Resolve color synchronously before setState so the returned player is correct
     const color = PLAYER_COLORS[playerCountRef.current % PLAYER_COLORS.length];
     playerCountRef.current += 1;
 
     const player: Player = {
-      id: crypto.randomUUID(),
+      id: existingId ?? crypto.randomUUID(),
       name,
       avatar: name.charAt(0),
       color,

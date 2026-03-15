@@ -67,7 +67,7 @@ function shouldSkipImage(fileName: string, file: MediaFile): boolean {
   }
 
   // Skip very small files (likely thumbnails, emoji, stickers) — under 15KB
-  if (file.blob.size < 15_000) return true;
+  if (file.blob && file.blob.size < 15_000) return true;
 
   // Skip GIFs (typically memes/reactions, not people photos)
   if (lower.endsWith(".gif")) return true;
@@ -90,11 +90,12 @@ function scorePhoto(
   if (sender) score += 20;
 
   // Bonus: larger files tend to be real photos, not screenshots
-  if (file.blob.size > 200_000) score += 10;
-  if (file.blob.size > 500_000) score += 5;
+  const blobSize = file.blob?.size ?? 0;
+  if (blobSize > 200_000) score += 10;
+  if (blobSize > 500_000) score += 5;
 
   // Penalty: very large files might be panoramas/documents
-  if (file.blob.size > 5_000_000) score -= 10;
+  if (blobSize > 5_000_000) score -= 10;
 
   // Bonus: JPG/JPEG are typically camera photos
   const lower = fileName.toLowerCase();

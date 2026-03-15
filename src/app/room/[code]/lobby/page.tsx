@@ -1,18 +1,19 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import Link from "next/link";
 import { useRoomContext } from "@/components/room/room-provider";
 import { QrCodeDisplay } from "@/components/room/qr-code";
 import { PlayerList } from "@/components/room/player-list";
 import { ModePicker } from "@/components/room/mode-picker";
-import { getSessionId } from "@/lib/session";
+import { getSessionId, clearLastRoom } from "@/lib/session";
 import type { GameModeType } from "@/lib/room/types";
 import { t } from "@/lib/i18n/he";
 import { VerticalCutReveal } from "@/components/ui/vertical-cut-reveal";
 import { TextShimmer } from "@/components/ui/text-shimmer";
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
 
 export default function RoomLobbyPage() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function RoomLobbyPage() {
     useRoomContext();
   const [copied, setCopied] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [lobbyClosed, setLobbyClosed] = useState(false);
   const sessionId = typeof window !== "undefined" ? getSessionId() : "";
 
   const joinUrl =
@@ -29,6 +31,36 @@ export default function RoomLobbyPage() {
 
   const nonGmPlayers = players.filter((p) => !p.isGm);
   const canStart = nonGmPlayers.length >= 1 && room?.gameMode !== null;
+
+  // Auto-redirect when phase changes (via WebSocket broadcast)
+  useEffect(() => {
+    if (!room) return;
+    if (room.phase === "playing") {
+      router.replace(`/room/${room.code}/game`);
+    } else if (room.phase === "results") {
+      if (isGm) {
+        router.replace("/");
+      } else {
+        setLobbyClosed(true);
+        setTimeout(() => router.replace("/"), 2500);
+      }
+    }
+  }, [room?.phase, room?.code, router, isGm]);
+
+  // GM tab close — notify backend so players get kicked
+  useEffect(() => {
+    if (!isGm || !room) return;
+    const handleUnload = () => {
+      fetch(`${BACKEND_URL}/rooms/${room.code}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phase: "results" }),
+        keepalive: true,
+      });
+    };
+    window.addEventListener("beforeunload", handleUnload);
+    return () => window.removeEventListener("beforeunload", handleUnload);
+  }, [isGm, room]);
 
   const handleCopyCode = useCallback(async () => {
     if (!room) return;
@@ -64,11 +96,20 @@ export default function RoomLobbyPage() {
     setIsStarting(true);
     try {
       await updatePhase("playing");
-      router.push(`/room/${room!.code}/game`);
+      // useEffect handles redirect for everyone (including admin)
     } catch {
       setIsStarting(false);
     }
-  }, [updatePhase, router, room, isStarting]);
+  }, [updatePhase, isStarting]);
+
+  const handleLeave = useCallback(async () => {
+    if (isGm) {
+      if (!confirm("לסגור את הלובי? כל השחקנים יצאו")) return;
+      await updatePhase("results");
+      clearLastRoom();
+    }
+    router.push("/");
+  }, [isGm, updatePhase, router]);
 
   if (isLoading || !room) {
     return (
@@ -83,11 +124,7 @@ export default function RoomLobbyPage() {
       {/* Header */}
       <header className="flex items-center gap-3 bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] px-4 py-2.5 text-white shadow-md">
         <button
-          onClick={() => {
-            if (!isGm || confirm("לעזוב את הלובי? השחקנים יישארו בלי מנחה")) {
-              router.push("/");
-            }
-          }}
+          onClick={handleLeave}
           className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-white/10"
           aria-label={t("common.back")}
         >
@@ -228,6 +265,14 @@ export default function RoomLobbyPage() {
           )}
         </div>
       </main>
+
+      {lobbyClosed && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm">
+          <div className="text-5xl mb-4">👋</div>
+          <p className="text-lg font-bold text-loot-ink">המנחה סגר את הלובי</p>
+          <p className="mt-1 text-sm text-loot-ink-secondary">חוזרים לדפ הבית...</p>
+        </div>
+      )}
     </div>
   );
 }

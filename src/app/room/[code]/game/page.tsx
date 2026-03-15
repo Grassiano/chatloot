@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { useRoomContext } from "@/components/room/room-provider";
@@ -9,8 +9,9 @@ import { LobbyStep } from "@/components/game/lobby-step";
 import { GameRound } from "@/components/game/game-round";
 import { FinalResults } from "@/components/game/final-results";
 import { ModeSelect } from "@/components/game/mode-select";
-import { SpectatorView } from "@/components/room/spectator-view";
-import { getSessionId } from "@/lib/session";
+import { PlayerGameView } from "@/components/game/player-game-view";
+import { getSessionId, clearLastRoom } from "@/lib/session";
+import { buildBroadcast } from "@/lib/game/broadcast";
 import type { ParsedChat } from "@/lib/parser/types";
 import type { WhoSaidItQuestion } from "@/lib/game/types";
 import { getMuted, setMuted } from "@/lib/sounds";
@@ -27,6 +28,10 @@ export default function RoomGamePage() {
   );
   const sessionId = typeof window !== "undefined" ? getSessionId() : "";
 
+  // Track which players have answered (for broadcast + auto-reveal)
+  const [answeredPlayerIds, setAnsweredPlayerIds] = useState<string[]>([]);
+  const answeredCountRef = useRef(0);
+
   const [muted, setMutedState] = useState(false);
   useEffect(() => {
     setMutedState(getMuted());
@@ -38,12 +43,15 @@ export default function RoomGamePage() {
     setMuted(next);
   }
 
+  // Extract chat from wizardData.chatData (backend) or room.chatData (legacy)
+  const resolvedChat = useMemo(() => {
+    const wd = room?.wizardData as Record<string, unknown> | null;
+    return (wd?.chatData as ParsedChat | null) ?? (room?.chatData as ParsedChat | null);
+  }, [room]);
+
   // Initialize game from room data
   useEffect(() => {
-    if (!room || initialized || !isGm) return;
-
-    const chat = room.chatData as ParsedChat | null;
-    if (!chat) return;
+    if (!room || initialized || !isGm || !resolvedChat) return;
 
     // Restore wizard data
     const wizardData = room.wizardData as {
@@ -57,15 +65,82 @@ export default function RoomGamePage() {
 
     const questions = wizardData?.questions ?? [];
     if (questions.length > 0) {
-      game.initGame(chat, undefined, questions);
+      game.initGame(resolvedChat, undefined, questions);
     } else {
-      game.initGame(chat);
+      game.initGame(resolvedChat);
     }
 
+    // Both modes: auto-add joined room players with backend IDs and start
+    const nonGm = players.filter((p) => !p.isGm);
+    for (const p of nonGm) {
+      game.addPlayer(p.name, p.id);
+    }
+    // Small delay to let state settle, then start
+    setTimeout(() => game.startGame(), 50);
+
     setInitialized(true);
-  }, [room, initialized, isGm, game]);
+  }, [room, initialized, isGm, game, resolvedChat, players]);
+
+  // Reset answered tracking on new round
+  useEffect(() => {
+    setAnsweredPlayerIds([]);
+    answeredCountRef.current = 0;
+  }, [game.state.currentRound]);
+
+  // GM: Broadcast game state to backend on phase/round changes
+  useEffect(() => {
+    if (!isGm || !initialized || !room) return;
+    const broadcast = buildBroadcast(game.state, answeredPlayerIds);
+    saveGameState(broadcast);
+  }, [game.state.phase, game.state.currentRound, isGm, initialized, room, answeredPlayerIds, game.state, saveGameState]);
+
+  // GM: Track remote player answers via player_scored WS event
+  // The useRoom hook already calls refreshPlayers() on player_scored.
+  // We detect new answers by watching player score changes.
+  const prevScoresRef = useRef<Record<string, number>>({});
+  useEffect(() => {
+    if (!isGm || !initialized) return;
+    const nonGm = players.filter((p) => !p.isGm);
+
+    // Detect which players had a score change (= answered)
+    const newAnswered: string[] = [];
+    for (const p of nonGm) {
+      const prevScore = prevScoresRef.current[p.id] ?? 0;
+      if (p.score !== prevScore) {
+        newAnswered.push(p.id);
+      }
+    }
+
+    // Update prev scores
+    const scores: Record<string, number> = {};
+    for (const p of nonGm) {
+      scores[p.id] = p.score;
+    }
+    prevScoresRef.current = scores;
+
+    if (newAnswered.length > 0) {
+      setAnsweredPlayerIds((prev) => {
+        const set = new Set(prev);
+        for (const id of newAnswered) set.add(id);
+        return [...set];
+      });
+    }
+  }, [players, isGm, initialized]);
+
+  // GM: Auto-reveal when all remote players have answered
+  useEffect(() => {
+    if (!isGm || game.state.phase !== "answering") return;
+    const nonGm = players.filter((p) => !p.isGm);
+    if (nonGm.length === 0) return;
+    if (answeredPlayerIds.length >= nonGm.length) {
+      // All players answered — auto-reveal after short delay
+      const id = setTimeout(() => game.revealAnswer(), 500);
+      return () => clearTimeout(id);
+    }
+  }, [answeredPlayerIds.length, players, isGm, game]);
 
   const handleGameEnd = useCallback(async () => {
+    clearLastRoom();
     await updatePhase("results");
     await saveGameState({
       players: game.state.players,
@@ -85,37 +160,15 @@ export default function RoomGamePage() {
     );
   }
 
-  // Player in party mode — show spectator view
-  if (!isGm && room.gameMode === "party") {
+  // Player view — both modes use PlayerGameView
+  if (!isGm) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <header className="sticky top-0 z-50 flex items-center gap-3 bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] px-4 py-2.5 text-white shadow-md">
-          <div className="flex-1">
-            <h1 className="text-[15px] font-medium">
-              {room.groupName ?? "ChatLoot"}
-            </h1>
-            <p className="text-[11px] opacity-75">
-              {t("spectator.title")}
-            </p>
-          </div>
-        </header>
-        <SpectatorView players={players} sessionId={sessionId} />
-      </div>
-    );
-  }
-
-  // Player in remote mode — TODO: implement player answer UI with real-time sync
-  if (!isGm && room.gameMode === "remote") {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#0F0B1E] px-4">
-        <div className="text-5xl mb-4">📱</div>
-        <p className="text-xl font-bold text-white text-center">
-          מצב מרחוק
-        </p>
-        <p className="mt-2 text-sm text-[#9B96B0] text-center">
-          ייושם בקרוב — כרגע המשחק רץ על מסך המנחה
-        </p>
-      </div>
+      <PlayerGameView
+        room={room}
+        players={players}
+        sessionId={sessionId}
+        hideQuestion={room.gameMode === "party"}
+      />
     );
   }
 
@@ -131,10 +184,11 @@ export default function RoomGamePage() {
     >
       <header className="sticky top-0 z-50 flex items-center gap-3 bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] px-4 py-2.5 text-white shadow-md">
         <button
-          onClick={() => {
+          onClick={async () => {
             const isActiveGame = !["setup", "lobby", "final"].includes(phase);
             if (isActiveGame && !confirm("יציאה באמצע המשחק?")) return;
-            router.push(`/room/${room.code}/lobby`);
+            await updatePhase("results");
+            router.push("/");
           }}
           aria-label={t("common.back")}
           className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-white/10"
@@ -179,8 +233,13 @@ export default function RoomGamePage() {
 
       <main className={`flex-1 ${phase === "lobby" ? "chat-wallpaper" : ""}`}>
         <AnimatePresence mode="wait">
-          {phase === "setup" && (
-            <ModeSelect key="mode-select" onSelect={() => game.initGame(room.chatData as ParsedChat)} />
+          {phase === "setup" && resolvedChat && (
+            <ModeSelect key="mode-select" onSelect={() => game.initGame(resolvedChat)} />
+          )}
+          {phase === "setup" && !resolvedChat && (
+            <div className="flex min-h-[50vh] flex-col items-center justify-center px-4">
+              <p className="text-[15px] text-[#9B96B0]">טוען נתוני צ׳אט...</p>
+            </div>
           )}
 
           {phase === "lobby" && (
@@ -188,7 +247,7 @@ export default function RoomGamePage() {
               key="lobby"
               game={game}
               memberNames={
-                (room.chatData as ParsedChat)?.members.map(
+                resolvedChat?.members.map(
                   (m) => m.displayName
                 ) ?? []
               }

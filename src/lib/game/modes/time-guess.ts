@@ -36,7 +36,7 @@ export function generateTimeGuessQuestions(
 
   // Prefer messages at unusual times (night gets highest priority, early morning next)
   const scored = eligible.map((m) => {
-    const hour = m.date.getHours();
+    const hour = new Date(m.date).getHours();
     let score = 0;
     if (hour >= 0 && hour < 5) score = 3; // night — most surprising
     else if (hour >= 5 && hour < 7) score = 2; // very early morning
@@ -55,7 +55,8 @@ export function generateTimeGuessQuestions(
   for (const { msg } of shuffled) {
     if (questions.length >= count) break;
 
-    const hour = msg.date.getHours();
+    const d = new Date(msg.date);
+    const hour = d.getHours();
     const correctSlot = getTimeSlot(hour);
 
     // Options: all 4 time slots, shuffled
@@ -68,7 +69,7 @@ export function generateTimeGuessQuestions(
       messageAuthor: msg.author!,
       correctAnswer: correctSlot,
       options,
-      gmNote: `${String(hour).padStart(2, "0")}:${String(msg.date.getMinutes()).padStart(2, "0")}`,
+      gmNote: `${String(hour).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`,
     });
   }
 

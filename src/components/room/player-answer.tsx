@@ -9,15 +9,18 @@ interface PlayerAnswerProps {
   timeLeft: number;
   totalTime: number;
   onAnswer: (answer: string) => void;
+  /** Party mode — question is on the shared screen, hide it on phone */
+  hideQuestion?: boolean;
 }
 
-/** What players see on their phone during remote mode — answer buttons */
+/** What players see on their phone — answer buttons (optionally with question) */
 export function PlayerAnswer({
   question,
   options,
   timeLeft,
   totalTime,
   onAnswer,
+  hideQuestion = false,
 }: PlayerAnswerProps) {
   const [selected, setSelected] = useState<string | null>(null);
   const progress = totalTime > 0 ? timeLeft / totalTime : 1;
@@ -42,9 +45,11 @@ export function PlayerAnswer({
         />
       </div>
 
-      {/* Question */}
+      {/* Question + Timer */}
       <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">
-        <p className="text-center text-lg font-bold text-white">{question}</p>
+        {!hideQuestion && (
+          <p className="text-center text-lg font-bold text-white">{question}</p>
+        )}
 
         {/* Timer number */}
         <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#F5C542]/30">
@@ -52,6 +57,12 @@ export function PlayerAnswer({
             {timeLeft}
           </span>
         </div>
+
+        {hideQuestion && (
+          <p className="text-center text-sm text-[#9B96B0]">
+            השאלה על המסך — בחרו תשובה!
+          </p>
+        )}
       </div>
 
       {/* Answer buttons */}

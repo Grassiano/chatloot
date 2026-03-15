@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { motion, AnimatePresence, type PanInfo } from "framer-motion";
 import type { MemberProfile } from "@/lib/wizard/types";
 import type { ParsedChat } from "@/lib/parser/types";
@@ -29,23 +29,32 @@ export function MemberCards({
 
   // Only show non-merged profiles
   const activeProfiles = profiles.filter((p) => !p.mergedInto);
-  const current = activeProfiles[currentIndex];
+
+  // Clamp index when profiles shrink (e.g. member merged)
+  useEffect(() => {
+    if (currentIndex >= activeProfiles.length && activeProfiles.length > 0) {
+      setCurrentIndex(activeProfiles.length - 1);
+    }
+  }, [activeProfiles.length, currentIndex]);
+
+  const clampedIndex = Math.min(currentIndex, activeProfiles.length - 1);
+  const current = activeProfiles[clampedIndex];
 
   const goNext = useCallback(() => {
-    if (currentIndex < activeProfiles.length - 1) {
+    if (clampedIndex < activeProfiles.length - 1) {
       setDirection(1);
-      setCurrentIndex((i) => i + 1);
+      setCurrentIndex(clampedIndex + 1);
     } else {
       onComplete();
     }
-  }, [currentIndex, activeProfiles.length, onComplete]);
+  }, [clampedIndex, activeProfiles.length, onComplete]);
 
   const goPrev = useCallback(() => {
-    if (currentIndex > 0) {
+    if (clampedIndex > 0) {
       setDirection(-1);
-      setCurrentIndex((i) => i - 1);
+      setCurrentIndex(clampedIndex - 1);
     }
-  }, [currentIndex]);
+  }, [clampedIndex]);
 
   // RTL: swipe left = forward (next), swipe right = backward (prev)
   const handleDragEnd = useCallback(
@@ -91,21 +100,21 @@ export function MemberCards({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="flex min-h-[calc(100vh-52px)] flex-col px-3 py-4"
+      className="flex h-[calc(100vh-52px)] flex-col px-3 py-4"
     >
-      <div className="mx-auto w-full max-w-lg flex-1">
+      <div className="mx-auto flex w-full max-w-lg flex-1 min-h-0 flex-col">
         {/* Header */}
-        <div className="mb-4 text-center">
+        <div className="mb-4 shrink-0 text-center">
           <h2 className="text-[18px] font-bold text-[#1E1B3A]">
             הכירו את החברים
           </h2>
           <p className="mt-1 text-[13px] text-[#6B7194]">
-            {currentIndex + 1} / {activeProfiles.length}
+            {clampedIndex + 1} / {activeProfiles.length}
           </p>
         </div>
 
-        {/* Card */}
-        <div className="relative overflow-hidden" style={{ minHeight: 440 }}>
+        {/* Card — flex-1 so it takes remaining space, scrolls internally */}
+        <div className="relative flex-1 min-h-0 overflow-hidden">
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={current.displayName}
@@ -118,7 +127,7 @@ export function MemberCards({
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.3}
               onDragEnd={handleDragEnd}
-              className="rounded-3xl bg-white/85 p-5 shadow-xl backdrop-blur-xl"
+              className="absolute inset-0 overflow-y-auto rounded-3xl bg-white/85 p-5 shadow-xl backdrop-blur-xl"
               style={{ WebkitBackdropFilter: "blur(20px)" }}
             >
               <ProfileCard
@@ -134,30 +143,30 @@ export function MemberCards({
           </AnimatePresence>
         </div>
 
-        {/* Navigation */}
-        <div className="mt-4 flex items-center justify-between">
+        {/* Navigation — pinned at bottom */}
+        <div className="shrink-0 pt-4 flex items-center justify-between">
           <button
             onClick={goPrev}
-            disabled={currentIndex === 0}
-            className="rounded-full px-4 py-2 text-[14px] font-medium text-[#8B5CF6] transition-opacity disabled:opacity-30"
+            disabled={clampedIndex === 0}
+            className="w-[72px] rounded-full px-4 py-2 text-[14px] font-medium text-[#8B5CF6] transition-opacity disabled:opacity-30"
           >
             הקודם
           </button>
 
           {/* Progress dots */}
-          <div className="flex gap-1">
+          <div className="flex flex-1 justify-center gap-1">
             {activeProfiles.map((_, i) => (
               <button
                 key={i}
                 onClick={() => {
-                  setDirection(i > currentIndex ? 1 : -1);
+                  setDirection(i > clampedIndex ? 1 : -1);
                   setCurrentIndex(i);
                 }}
                 className="flex h-[44px] items-center justify-center px-0.5"
               >
                 <span
                   className={`block h-2.5 rounded-full transition-all ${
-                    i === currentIndex
+                    i === clampedIndex
                       ? "w-5 bg-[#8B5CF6]"
                       : "w-2.5 bg-[#8B5CF6]/30"
                   }`}
@@ -168,9 +177,9 @@ export function MemberCards({
 
           <button
             onClick={goNext}
-            className="rounded-full bg-[#8B5CF6] px-4 py-2 text-[14px] font-bold text-white"
+            className="w-[72px] rounded-full bg-[#8B5CF6] px-4 py-2 text-[14px] font-bold text-white"
           >
-            {currentIndex === activeProfiles.length - 1 ? "סיום" : "הבא"}
+            {clampedIndex === activeProfiles.length - 1 ? "סיום" : "הבא"}
           </button>
         </div>
       </div>
