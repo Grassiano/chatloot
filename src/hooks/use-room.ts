@@ -72,11 +72,28 @@ export function useRoom(): UseRoomReturn {
     }
   }, [refreshPlayers]);
 
+  // Refetch full room state on WebSocket reconnect to catch missed events
+  const handleReconnect = useCallback(async () => {
+    if (!roomRef.current) return;
+    try {
+      const fetched = await roomApi.getRoom(roomRef.current.code, sessionId);
+      if (fetched) {
+        roomRef.current = fetched;
+        setRoom(fetched);
+      }
+      const updated = await roomApi.getPlayers(roomRef.current.code);
+      setPlayers(updated);
+    } catch {
+      // Silently fail — will get next WS event
+    }
+  }, [sessionId]);
+
   // Connect WebSocket when we have a room
   useRoomSocket({
     roomCode: room?.code ?? null,
     sessionId,
     onEvent: handleWsEvent,
+    onReconnect: handleReconnect,
     enabled: !!room,
   });
 

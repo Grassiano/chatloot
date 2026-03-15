@@ -19,6 +19,7 @@ interface UseRoomSocketOptions {
   roomCode: string | null;
   sessionId: string;
   onEvent: EventHandler;
+  onReconnect?: () => void;
   enabled?: boolean;
 }
 
@@ -26,13 +27,17 @@ export function useRoomSocket({
   roomCode,
   sessionId,
   onEvent,
+  onReconnect,
   enabled = true,
 }: UseRoomSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttempts = useRef(0);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  const hasConnectedOnce = useRef(false);
   const onEventRef = useRef(onEvent);
   onEventRef.current = onEvent;
+  const onReconnectRef = useRef(onReconnect);
+  onReconnectRef.current = onReconnect;
 
   const cleanup = useCallback(() => {
     if (reconnectTimer.current) {
@@ -57,7 +62,13 @@ export function useRoomSocket({
     wsRef.current = ws;
 
     ws.onopen = () => {
+      const wasReconnect = hasConnectedOnce.current;
+      hasConnectedOnce.current = true;
       reconnectAttempts.current = 0;
+      // On reconnect, refetch room state to catch any missed events
+      if (wasReconnect && onReconnectRef.current) {
+        onReconnectRef.current();
+      }
     };
 
     ws.onmessage = (event) => {

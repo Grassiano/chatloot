@@ -81,18 +81,26 @@ export default function RoomGamePage() {
     setInitialized(true);
   }, [room, initialized, isGm, game, resolvedChat, players]);
 
-  // Reset answered tracking on new round
-  useEffect(() => {
-    setAnsweredPlayerIds([]);
-    answeredCountRef.current = 0;
-  }, [game.state.currentRound]);
+  // Track last broadcast round to detect round changes and reset answered list
+  const lastBroadcastRoundRef = useRef(0);
 
   // GM: Broadcast game state to backend on phase/round changes
+  // Combined with answered-reset to prevent race conditions between separate effects
   useEffect(() => {
     if (!isGm || !initialized || !room) return;
-    const broadcast = buildBroadcast(game.state, answeredPlayerIds);
+
+    // Reset answered tracking when round changes
+    let currentAnswered = answeredPlayerIds;
+    if (game.state.currentRound !== lastBroadcastRoundRef.current) {
+      lastBroadcastRoundRef.current = game.state.currentRound;
+      setAnsweredPlayerIds([]);
+      answeredCountRef.current = 0;
+      currentAnswered = []; // Use empty for this broadcast
+    }
+
+    const broadcast = buildBroadcast(game.state, currentAnswered);
     saveGameState(broadcast);
-  }, [game.state.phase, game.state.currentRound, isGm, initialized, room, answeredPlayerIds, game.state, saveGameState]);
+  }, [game.state.phase, game.state.currentRound, isGm, initialized, room, answeredPlayerIds, saveGameState]);
 
   // GM: Track remote player answers via player_scored WS event
   // The useRoom hook already calls refreshPlayers() on player_scored.
