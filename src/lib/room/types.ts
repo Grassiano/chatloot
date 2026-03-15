@@ -32,21 +32,22 @@ export interface RoomPlayer {
 export interface RoomAPI {
   createRoom(gmSessionId: string, groupName?: string, file?: File | Blob): Promise<Room>;
   getRoom(code: string, sessionId?: string): Promise<Room | null>;
-  updateRoom(code: string, data: Partial<Room>): Promise<Room>;
+  updateRoom(code: string, data: Partial<Room>, sessionId: string): Promise<Room>;
   joinRoom(
     code: string,
     name: string,
     sessionId: string
   ): Promise<RoomPlayer>;
   getPlayers(code: string): Promise<RoomPlayer[]>;
-  removePlayer(code: string, playerId: string): Promise<void>;
+  removePlayer(code: string, playerId: string, sessionId: string): Promise<void>;
   submitAnswer(
     code: string,
     playerId: string,
+    sessionId: string,
     roundNumber: number,
     answer: string,
     timeMs: number
   ): Promise<{ isCorrect: boolean; scoreAwarded: number }>;
-  saveWizardData(code: string, data: unknown): Promise<void>;
-  saveGameState(code: string, state: unknown): Promise<void>;
+  saveWizardData(code: string, data: unknown, sessionId: string): Promise<void>;
+  saveGameState(code: string, state: unknown, sessionId: string): Promise<void>;
 }

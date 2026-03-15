@@ -49,8 +49,24 @@ export function useRoom(): UseRoomReturn {
   const handleWsEvent = useCallback((event: WsEvent) => {
     switch (event.type) {
       case "player_joined": {
-        // Refresh full player list to stay in sync
-        refreshPlayers();
+        // Use WS payload directly instead of refetching
+        const p = event.payload as Record<string, unknown>;
+        const newPlayer: RoomPlayer = {
+          id: p.id as string,
+          sessionId: (p.sessionId as string) ?? "",
+          name: p.name as string,
+          avatar: (p.avatar as string) ?? "",
+          color: p.color as string,
+          score: (p.score as number) ?? 0,
+          streak: (p.streak as number) ?? 0,
+          isGm: (p.isGm as boolean) ?? false,
+          joinedAt: new Date().toISOString(),
+        };
+        setPlayers((prev) => {
+          // Avoid duplicates on re-join
+          if (prev.some((existing) => existing.id === newPlayer.id)) return prev;
+          return [...prev, newPlayer];
+        });
         break;
       }
       case "phase_change": {
@@ -65,12 +81,15 @@ export function useRoom(): UseRoomReturn {
         break;
       }
       case "player_scored": {
-        // Refresh players to get updated scores
-        refreshPlayers();
+        // Use WS payload directly — update score in place
+        const { playerId, score } = event.payload as { playerId: string; score: number };
+        setPlayers((prev) =>
+          prev.map((p) => (p.id === playerId ? { ...p, score } : p))
+        );
         break;
       }
     }
-  }, [refreshPlayers]);
+  }, []);
 
   // Refetch full room state on WebSocket reconnect to catch missed events
   const handleReconnect = useCallback(async () => {
@@ -169,49 +188,45 @@ export function useRoom(): UseRoomReturn {
   const updatePhase = useCallback(
     async (phase: Room["phase"]) => {
       if (!roomRef.current) return;
-      await roomApi.updateRoom(roomRef.current.code, { phase });
-      // Optimistically update — backend confirmed via 200
+      await roomApi.updateRoom(roomRef.current.code, { phase }, sessionId);
       const merged = { ...roomRef.current, phase };
       roomRef.current = merged;
       setRoom(merged);
     },
-    []
+    [sessionId]
   );
 
   const setGameMode = useCallback(
     async (mode: GameModeType) => {
       if (!roomRef.current) return;
-      await roomApi.updateRoom(roomRef.current.code, { gameMode: mode });
-      // Optimistically update — backend confirmed via 200
+      await roomApi.updateRoom(roomRef.current.code, { gameMode: mode }, sessionId);
       const merged = { ...roomRef.current, gameMode: mode };
       roomRef.current = merged;
       setRoom(merged);
     },
-    []
+    [sessionId]
   );
 
   const saveWizardData = useCallback(
     async (data: unknown) => {
       if (!roomRef.current) return;
-      await roomApi.saveWizardData(roomRef.current.code, data);
-      // Update local state so subsequent reads see the saved data
+      await roomApi.saveWizardData(roomRef.current.code, data, sessionId);
       const merged = { ...roomRef.current, wizardData: data };
       roomRef.current = merged;
       setRoom(merged);
     },
-    []
+    [sessionId]
   );
 
   const saveGameState = useCallback(
     async (state: unknown) => {
       if (!roomRef.current) return;
-      await roomApi.saveGameState(roomRef.current.code, state);
-      // Update local state
+      await roomApi.saveGameState(roomRef.current.code, state, sessionId);
       const merged = { ...roomRef.current, gameState: state };
       roomRef.current = merged;
       setRoom(merged);
     },
-    []
+    [sessionId]
   );
 
   return {

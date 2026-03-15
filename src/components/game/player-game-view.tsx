@@ -39,7 +39,7 @@ export function PlayerGameView({
       setAnswered(false);
       setMyResult(null);
     }
-  }, [gameState?.currentRound, gameState]);
+  }, [gameState?.currentRound]);
 
   // Derive time left from roundStartedAt
   const [timeLeft, setTimeLeft] = useState(0);
@@ -64,7 +64,7 @@ export function PlayerGameView({
     tick();
     const interval = setInterval(tick, 250);
     return () => clearInterval(interval);
-  }, [gameState?.phase, gameState?.roundStartedAt, gameState?.timerSeconds, gameState]);
+  }, [gameState?.phase, gameState?.roundStartedAt, gameState?.timerSeconds]);
 
   // Extract my result from broadcast on reveal
   useEffect(() => {
@@ -86,15 +86,17 @@ export function PlayerGameView({
         await roomApi.submitAnswer(
           room.code,
           currentPlayer.id,
+          sessionId,
           gameState.currentRound,
           answer,
           answerTime
         );
       } catch {
-        // Answer submission failed — player stays locked
+        // Unlock on failure so player can retry
+        setAnswered(false);
       }
     },
-    [currentPlayer, gameState, answered, room.code]
+    [currentPlayer, gameState, answered, room.code, sessionId]
   );
 
   if (!gameState) {

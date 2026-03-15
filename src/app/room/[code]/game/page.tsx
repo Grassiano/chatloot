@@ -30,6 +30,8 @@ export default function RoomGamePage() {
 
   // Track which players have answered (for broadcast + auto-reveal)
   const [answeredPlayerIds, setAnsweredPlayerIds] = useState<string[]>([]);
+  const answeredIdsRef = useRef<string[]>([]);
+  answeredIdsRef.current = answeredPlayerIds;
   const answeredCountRef = useRef(0);
 
   const [muted, setMutedState] = useState(false);
@@ -90,17 +92,20 @@ export default function RoomGamePage() {
     if (!isGm || !initialized || !room) return;
 
     // Reset answered tracking when round changes
-    let currentAnswered = answeredPlayerIds;
+    let currentAnswered = answeredIdsRef.current;
     if (game.state.currentRound !== lastBroadcastRoundRef.current) {
       lastBroadcastRoundRef.current = game.state.currentRound;
       setAnsweredPlayerIds([]);
+      answeredIdsRef.current = [];
       answeredCountRef.current = 0;
-      currentAnswered = []; // Use empty for this broadcast
+      currentAnswered = [];
     }
 
     const broadcast = buildBroadcast(game.state, currentAnswered);
     saveGameState(broadcast);
-  }, [game.state.phase, game.state.currentRound, isGm, initialized, room, answeredPlayerIds, saveGameState]);
+  // answeredPlayerIds intentionally omitted — broadcast only on phase/round changes.
+  // Player answer tracking updates locally; no need to PATCH backend per answer.
+  }, [game.state.phase, game.state.currentRound, isGm, initialized, room, saveGameState]);
 
   // GM: Track remote player answers via player_scored WS event
   // The useRoom hook already calls refreshPlayers() on player_scored.

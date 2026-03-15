@@ -77,13 +77,13 @@ export default function RoomCreatePage() {
             members: Object.fromEntries(parsed.stats.members),
           },
         };
-        await roomApi.saveWizardData(room.code, { chatData: serializableChat });
+        await roomApi.saveWizardData(room.code, { chatData: serializableChat }, getSessionId());
         saveLastRoom(room.code);
 
         // Fire AI analysis in background — don't block navigation
         analyzeChat(parsed).then(async (result) => {
           if (result?.isAiEnhanced) {
-            await roomApi.updateRoom(room.code, { analysisData: result });
+            await roomApi.updateRoom(room.code, { analysisData: result }, getSessionId());
           }
         }).catch(() => {});
 

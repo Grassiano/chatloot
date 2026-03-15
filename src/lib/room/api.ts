@@ -92,7 +92,7 @@ export const roomApi: RoomAPI = {
     }
   },
 
-  async updateRoom(code, data) {
+  async updateRoom(code, data, sessionId) {
     const body: Record<string, unknown> = {};
     if (data.phase !== undefined) body.phase = data.phase;
     if (data.gameMode !== undefined) body.game_mode = data.gameMode;
@@ -100,7 +100,8 @@ export const roomApi: RoomAPI = {
     if (data.gameState !== undefined) body.game_state = data.gameState;
     if (data.analysisData !== undefined) body.analysis_data = data.analysisData;
 
-    const res = await apiFetch<Record<string, unknown>>(`/rooms/${code}`, {
+    const query = sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : "";
+    const res = await apiFetch<Record<string, unknown>>(`/rooms/${code}${query}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -124,11 +125,12 @@ export const roomApi: RoomAPI = {
     return data.map(toPlayer);
   },
 
-  async removePlayer(code, playerId) {
-    await apiFetch(`/rooms/${code}/players/${playerId}`, { method: "DELETE" });
+  async removePlayer(code, playerId, sessionId) {
+    const query = sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : "";
+    await apiFetch(`/rooms/${code}/players/${playerId}${query}`, { method: "DELETE" });
   },
 
-  async submitAnswer(code, playerId, _roundNumber, answer, timeMs) {
+  async submitAnswer(code, playerId, sessionId, roundNumber, answer, timeMs) {
     const data = await apiFetch<{ is_correct: boolean; score_awarded: number }>(
       `/rooms/${code}/answers`,
       {
@@ -136,8 +138,10 @@ export const roomApi: RoomAPI = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           player_id: playerId,
+          session_id: sessionId,
           answer,
           time_ms: timeMs,
+          round_number: roundNumber,
         }),
       },
     );
@@ -145,16 +149,18 @@ export const roomApi: RoomAPI = {
     return { isCorrect: data.is_correct, scoreAwarded: data.score_awarded };
   },
 
-  async saveWizardData(code, data) {
-    await apiFetch(`/rooms/${code}`, {
+  async saveWizardData(code, data, sessionId) {
+    const query = sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : "";
+    await apiFetch(`/rooms/${code}${query}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ wizard_data: data }),
     });
   },
 
-  async saveGameState(code, state) {
-    await apiFetch(`/rooms/${code}`, {
+  async saveGameState(code, state, sessionId) {
+    const query = sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : "";
+    await apiFetch(`/rooms/${code}${query}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ game_state: state }),
